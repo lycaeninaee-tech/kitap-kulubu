@@ -1,20 +1,18 @@
 rules_version = '2';
-
 // Yalnızca kulüp üyeleri okuyup yazabilir. E-postalar config.js ile aynı olmalı, küçük harfle.
 service cloud.firestore {
-  match /databases/{database}/documents {
-    function isMember() {
-      return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower() in [
-          'uye1@gmail.com',
-          'uye2@gmail.com',
-          'uye3@gmail.com'
-        ];
-    }
-
-    match /{document=**} {
-      allow read, write: if isMember();
-    }
-  }
+match /databases/{database}/documents {
+function isMember() {
+return request.auth != null
+&& request.auth.token.email_verified == true
+&& request.auth.token.email.lower() in [
+'lycaeninaee@gmail.com',
+'elifebrarsariahmet@gmail.com',
+'taskiransebnem@gmail.com'
+];
+}
+match /{document=**} {
+allow read, write: if isMember();
+}
+}
 }
