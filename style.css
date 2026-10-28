@@ -529,3 +529,37 @@ box-shadow: 6px 7px 0 var(--line);
 .bcard:hover .cover { transform: translateY(-6px) rotate(-1.5deg); }
 .addcard { border-radius: 18px; }
 .toast { border-radius: 999px; background: var(--plum); }
+/* Çizim detayları: yıldızlar, bant parçaları, boş ekran ikonu */
+body {
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cpath d='M34 24l3.5 8 8 3.5-8 3.5-3.5 8-3.5-8-8-3.5 8-3.5z' fill='%23ffc857' opacity='.6'/%3E%3Cpath d='M138 104l2.8 6.4 6.4 2.8-6.4 2.8-2.8 6.4-2.8-6.4-6.4-2.8 6.4-2.8z' fill='%237b5cc4' opacity='.45'/%3E%3Ccircle cx='112' cy='40' r='3.5' fill='%23ff7a9a' opacity='.5'/%3E%3Ccircle cx='48' cy='142' r='2.5' fill='%234fbf8f' opacity='.55'/%3E%3C/svg%3E"), radial-gradient(circle, rgba(123, 92, 196, 0.14) 1.5px, transparent 1.8px);
+background-size: 180px 180px, 24px 24px;
+}
+.card { position: relative; }
+.card::before {
+content: "";
+position: absolute;
+top: -11px;
+left: 50%;
+width: 64px;
+height: 22px;
+transform: translateX(-50%) rotate(-3deg);
+background: rgba(255, 214, 120, 0.7);
+border-radius: 4px;
+pointer-events: none;
+}
+.empty::before {
+content: "\1F4DA";
+display: block;
+font-size: 46px;
+line-height: 1;
+margin-bottom: 4px;
+}
+.hero::before {
+content: "\2601";
+position: absolute;
+top: 14px;
+right: 22px;
+font-size: 30px;
+opacity: 0.35;
+z-index: 1;
+}
