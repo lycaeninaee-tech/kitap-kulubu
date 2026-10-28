@@ -483,3 +483,49 @@ details.more { border-top: 1px solid var(--line); padding-top: 12px; }
 details.more summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--muted); }
 
 [hidden] { display: none !important; }
+/* Whimsical tema: yumuşak köşeler, pastel renkler, küçük yıldızlar */
+:root {
+--bg: #fdf6ec;
+--surface: #fffdf8;
+--sunk: #f7ecdc;
+--ink: #3b2a4a;
+--muted: #7d6b8f;
+--line: #ecdcc9;
+--accent: #ff7a9a;
+--accent-soft: #ffe1ea;
+--plum: #7b5cc4;
+--plum-soft: #ebe3fa;
+--gold: #ffc857;
+--gold-soft: #fff1c9;
+--ok: #4fbf8f;
+--ok-soft: #dcf5e9;
+--r: 24px;
+}
+body {
+background-color: var(--bg);
+background-image: radial-gradient(circle, rgba(123, 92, 196, 0.14) 1.5px, transparent 1.8px);
+background-size: 24px 24px;
+}
+h1, h2, h3 { color: var(--ink); }
+.page-head h1::after { content: " \2726"; color: var(--gold); }
+.card {
+border: 2px solid var(--line);
+border-radius: 26px 18px 24px 16px;
+box-shadow: 5px 6px 0 var(--line);
+}
+.hero {
+border: 2px solid var(--line);
+border-radius: 30px 22px 28px 20px;
+box-shadow: 6px 7px 0 var(--line);
+}
+.btn { border-radius: 999px; box-shadow: 0 3px 0 rgba(59, 42, 74, 0.25); }
+.btn:active { box-shadow: none; transform: translateY(2px); }
+.btn.accent { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 #d9506f; }
+.snav button.on { background: var(--gold-soft); }
+.snav button.on svg { color: var(--plum); }
+.filters button.on { background: var(--plum); border-color: var(--plum); color: #fff; }
+.chip { background: var(--gold-soft); color: var(--ink); }
+.cover { border-radius: 6px 14px 14px 6px; }
+.bcard:hover .cover { transform: translateY(-6px) rotate(-1.5deg); }
+.addcard { border-radius: 18px; }
+.toast { border-radius: 999px; background: var(--plum); }
