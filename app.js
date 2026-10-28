@@ -967,7 +967,7 @@ document.addEventListener('change', e => {
     case 'mplace': upd(id, { meetingPlace: el.value.trim() }); break;
     case 'host': upd(id, { host: el.value }); break;
     case 'mood': upd(id, { mood: { [slug(S.me)]: { [el.value]: el.checked } } }); break;
-    case 'progress': upd(id, { progress: { [slug(S.me)]: Number(el.value) } }); break; case 'page': { const b = bookById(id); const pg = Number(el.value) || 0; const pct = pagesOf(b) ? Math.min(100, Math.round(pg / pagesOf(b) * 100)) : 0; upd(id, { progress: { [slug(S.me)]: pct }, pageRead: { [slug(S.me)]: pg } }); break; }
+    case 'progress': upd(id, { progress: { [slug(S.me)]: Number(el.value) } }); break; case 'page': { const b = bookById(id); const pg = Number(el.value) || 0; const pct = pagesOf(b) ? Math.min(100, Math.round(pg / pagesOf(b) * 100)) : 0; upd(id, { progress: { [slug(S.me)]: pct }, pageRead: { [slug(S.me)]: pg } }); break; } case 'page': { const b = bookById(id); const pg = Number(el.value) || 0; const pct = pagesOf(b) ? Math.min(100, Math.round(pg / pagesOf(b) * 100)) : 0; upd(id, { progress: { [slug(S.me)]: pct }, pageRead: { [slug(S.me)]: pg } }); break; }
     case 'cover': { const f = el.files && el.files[0]; el.value = ''; if (f) uploadFile(id, f); break; }
     case 'nbphoto': { const f = el.files && el.files[0]; el.value = ''; takePhoto(f); break; }
   }
