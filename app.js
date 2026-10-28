@@ -140,7 +140,7 @@ function progRow(b, name) {
   return `<li style="--c:${colorOf(name)}">
     <div class="prow">${avatar(name, 'sm')}<span>${esc(name)}${mine ? ' <span class="muted small">(sen)</span>' : ''}</span><span class="pct"><b>%${p}</b>${pg}</span></div>
     ${mine
-      ? `<input type="range" id="prog-${esc(b.id)}" min="0" max="100" step="5" value="${p}" data-change="progress" data-id="${esc(b.id)}" aria-label="Okuma ilerlemen">`
+      ? `<div class="pgrow"><input type="number" min="0" id="prog-${esc(b.id)}" value="${(b.pageRead || {})[slug(name)] || ''}" placeholder="Sayfa" data-change="page" data-id="${esc(b.id)}" aria-label="Okuduğun sayfa">${pages ? `<span class="muted small">/ ${pages}</span>` : '<span class="muted small">sayfa sayısını girin</span>'}</div>`
       : `<div class="bar"><span style="width:${p}%"></span></div>`}
   </li>`;
 }
@@ -967,7 +967,7 @@ document.addEventListener('change', e => {
     case 'mplace': upd(id, { meetingPlace: el.value.trim() }); break;
     case 'host': upd(id, { host: el.value }); break;
     case 'mood': upd(id, { mood: { [slug(S.me)]: { [el.value]: el.checked } } }); break;
-    case 'progress': upd(id, { progress: { [slug(S.me)]: Number(el.value) } }); break;
+    case 'progress': upd(id, { progress: { [slug(S.me)]: Number(el.value) } }); break; case 'page': { const b = bookById(id); const pg = Number(el.value) || 0; const pct = pagesOf(b) ? Math.min(100, Math.round(pg / pagesOf(b) * 100)) : 0; upd(id, { progress: { [slug(S.me)]: pct }, pageRead: { [slug(S.me)]: pg } }); break; }
     case 'cover': { const f = el.files && el.files[0]; el.value = ''; if (f) uploadFile(id, f); break; }
     case 'nbphoto': { const f = el.files && el.files[0]; el.value = ''; takePhoto(f); break; }
   }
