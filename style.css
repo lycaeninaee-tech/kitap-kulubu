@@ -599,3 +599,17 @@ font-size: 0;
 opacity: 0.95;
 background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70'%3E%3Cpath d='M30 58 C12 58 8 36 26 32 C26 16 46 8 58 18 C66 4 92 8 92 28 C108 28 112 56 92 58 Z' fill='%23ffffff' stroke='%233b2a4a' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M42 42 q4 -4 8 0 M70 46 q4 -4 8 0' fill='none' stroke='%237b5cc4' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
+/* Bulut çizimi başlık yanına taşındı */
+.hero::before { display: none; }
+.page-head { position: relative; }
+.page-head::before {
+content: "";
+position: absolute;
+right: 4px;
+top: -8px;
+width: 96px;
+height: 56px;
+opacity: 0.95;
+background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70'%3E%3Cpath d='M30 58 C12 58 8 36 26 32 C26 16 46 8 58 18 C66 4 92 8 92 28 C108 28 112 56 92 58 Z' fill='%23ffffff' stroke='%233b2a4a' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M42 42 q4 -4 8 0 M70 46 q4 -4 8 0' fill='none' stroke='%237b5cc4' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+pointer-events: none;
+}
