@@ -17,5 +17,5 @@ members: [
 { name: 'Şebnem', email: 'taskiransebnem@gmail.com' },
 ],
 // İsteğe bağlı: Google Cloud'dan ücretsiz Books API anahtarı. Boşken kapak araması yine çalışır ama Google sık sık reddedebilir.
-googleBooksKey: '',
+googleBooksKey: '', viewers: ['asparagas90@gmail.com'],
 };
