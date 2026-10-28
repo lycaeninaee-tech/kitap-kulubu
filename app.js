@@ -5,7 +5,7 @@ import { CONFIG } from './config.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const STATUS = { sirada: 'Sırada', okunuyor: 'Okunuyor', tamamlandi: 'Tamamlandı' };
+const STATUS = { sirada: 'Sırada', okunuyor: 'Okunuyor', tamamlandi: 'Tamamlandı', birakildi: 'Bırakıldı' };
 const MOODS = ['Duygusal', 'Düşündürücü', 'Hüzünlü', 'Umut verici', 'Karanlık', 'Gergin', 'Eğlenceli', 'Maceralı', 'Rahatlatıcı', 'Sürükleyici', 'Akıcı', 'Ağır dil', 'Karakter takibi zor'];
 const PACE = [['yavas', 'Yavaş'], ['orta', 'Orta'], ['hizli', 'Hızlı']];
 const FOCUS = [['olay', 'Olay'], ['karakter', 'Karakter'], ['ikisi', 'İkisi de']];
@@ -934,7 +934,7 @@ document.addEventListener('click', e => {
       if (n) db.patch('books/' + S.bookId + '/notes', id, { done: !n.done }).catch(fail);
       break;
     }
-    case 'tstart': startTimer2(document.getElementById('timer-book') ? document.getElementById('timer-book').value : ''); break; case 'tstop': stopTimer2(); break; case 'treset': resetTimer2(); break; case 'msave': saveMusic(); break; case 'generic': addGeneric(id); break;
+    case 'tstart': startTimer2(document.getElementById('timer-book') ? document.getElementById('timer-book').value : ''); break; case 'tstop': stopTimer2(); break; case 'treset': resetTimer2(); break; case 'msave': saveMusic(); break; case 'gsave': saveGoal(); break; case 'generic': addGeneric(id); break;
     case 'find': findCovers(id); break;
     case 'pick': {
       const x = (S.finds[id] || []).filter(c => c.cover)[Number(el.dataset.i)];
@@ -1292,7 +1292,7 @@ return `
 <section class="card"><h3>Bugün</h3><p class="big">${esc(fmtSure(todaySecs2(mine)))}</p><p class="small muted">Seri: ${streakDays2(mine)} gün · Zamanlayıcı sayfasından oku</p></section>
 <section class="card"><h3>Son oturumlar</h3>${mine.length ? `<ul class="feed">${mine.slice(0, 6).map(s => `<li><span class="ft">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}</span><span class="small muted">${esc(fmtSure(s.seconds || 0))}</span></li>`).join('')}</ul>` : '<p class="muted small">Henüz oturum yok.</p>'}</section>
 </div>
-<section class="card"><h3>Müziğim</h3>${embed || '<p class="muted small">Spotify ya da YouTube bağlantını ekle, burada çalsın.</p>'}
+${profExtras2(mine, prof)}<section class="card"><h3>Müziğim</h3>${embed || '<p class="muted small">Spotify ya da YouTube bağlantını ekle, burada çalsın.</p>'}
 <label style="margin-top:14px">Bağlantı<input id="music-url" value="${esc(prof.music || '')}" placeholder="open.spotify.com/... ya da youtube.com/..."></label>
 <div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-act="msave">Kaydet</button>${prof.music ? `<a class="btn ghost sm" href="${esc(prof.music)}" target="_blank" rel="noopener">Uygulamada aç</a>` : ''}</div></section>`;
 }
@@ -1332,3 +1332,6 @@ return `
 <section class="card"><h3>Son oturumlar</h3>${mine.length ? `<ul class="feed">${mine.slice(0, 10).map(s => `<li><span class="ft">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}</span><span class="small muted">${esc(fmtSure(s.seconds || 0))}</span></li>`).join('')}</ul>` : '<p class="muted small">Henüz oturum yok.</p>'}</section>
 </div>`;
 }
+function saveGoal() { if (!S.me) return toast('Önce kim olduğunu seç.'); const v = Math.max(0, Number(document.getElementById('goal-min').value) || 0); db.patch('profiles', slug(S.me), { name: S.me, goalMin: v }).then(() => toast('Hedef kaydedildi')).catch(fail); }
+
+function profExtras2(mine, prof) { const days = [...Array(7)].map((_, i) => { const d = new Date(Date.now() - (6 - i) * 86400000); const k = dayKey2(d); return { label: d.toLocaleDateString('tr-TR', { weekday: 'short' }), secs: mine.filter(s => (s.at || '').slice(0, 10) === k).reduce((a, s) => a + (s.seconds || 0), 0) }; }); const weekMin = Math.round(days.reduce((a, d) => a + d.secs, 0) / 60); const goal = prof.goalMin || 0; const pct = goal ? Math.min(100, Math.round(weekMin / goal * 100)) : 0; const max = Math.max(60, ...days.map(d => d.secs)); const bars = days.map(d => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><div title="${esc(fmtSure(d.secs))}" style="width:100%;height:${Math.max(2, Math.round(d.secs / max * 100))}%;background:var(--accent);border-radius:6px 6px 0 0"></div><span class="small muted">${esc(d.label)}</span></div>`).join(''); const dropped = S.books.filter(b => b.status === 'birakildi'); const droppedHtml = dropped.length ? `<ul class="feed">${dropped.map(b => `<li><span class="ft">${esc(b.title)}</span><span class="small muted">${esc(b.author || '')}</span></li>`).join('')}</ul>` : '<p class="muted small">Bırakılan kitap yok.</p>'; return `<div class="grid3"><section class="card"><h3>Haftalık hedef</h3><p class="big">${weekMin}<small> dk</small></p><p class="small muted">${goal ? 'Hedef ' + goal + ' dk · %' + pct : 'Henüz hedef yok'}</p><div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:10px 0"><span style="display:block;height:100%;width:${pct}%;background:var(--accent)"></span></div><div class="actions"><input id="goal-min" type="number" min="0" value="${goal || ''}" placeholder="Dakika"><button type="button" class="btn sm" data-act="gsave">Kaydet</button></div></section><section class="card"><h3>Son 7 gün</h3><div style="display:flex;align-items:flex-end;gap:6px;height:120px">${bars}</div></section><section class="card"><h3>Bırakılan kitaplar</h3>${droppedHtml}</section></div>`; }
