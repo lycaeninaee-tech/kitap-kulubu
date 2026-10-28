@@ -20,7 +20,7 @@ const GENERIC_Q = [
   'Sesli okumak istediğin bir bölüm var mı? Neden o bölüm?',
   'Bu kitabı kime önerirdin?',
 ];
-const TABS = [['genel', 'Genel'], ['once', 'Toplantı öncesi'], ['alinti', 'Alıntılar'], ['soru', 'Sorular'], ['toplanti', 'Toplantı']];
+const TABS = [['genel', 'Genel'], ['yazar', 'Yazar'], ['bilgi', 'Bilgi'], ['once', 'Toplantı öncesi'], ['alinti', 'Alıntılar'], ['soru', 'Sorular'], ['toplanti', 'Toplantı']];
 const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart']];
 const ICON = {
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -501,7 +501,7 @@ function viewBook() {
   const list = S.notes[b.id] || [];
   const n = k => list.filter(x => kindOf(x) === k).length;
   const counts = { once: n('info') + n('own'), alinti: n('quote'), soru: n('question'), toplanti: n('meeting') };
-  const body = { genel: tabGeneral, once: tabBefore, alinti: tabQuotes, soru: tabQuestions, toplanti: tabMeeting }[S.tab] || tabGeneral;
+  const body = { genel: tabGeneral, once: tabBefore, alinti: tabQuotes, soru: tabQuestions, toplanti: tabMeeting, yazar: tabAuthor, bilgi: tabInfo }[S.tab] || tabGeneral;
   return `
   <nav class="crumbs"><button type="button" data-act="back">${icon('back')}Kitaplık</button><span>/</span><span>${esc(b.title)}</span></nav>
   <section class="hero">
@@ -1099,3 +1099,23 @@ window.kulupImport = async (url = 'tasima.json') => {
   for (const s of data.suggestions || []) { const { id, ...rest } = s; await setDoc(doc(fs, 'suggestions', id), rest); }
   console.log('Taşıma bitti.');
 };
+// Kitap bilgileri: kitap-bilgi.json dosyasından yazar notu, künye ve ilginç bilgiler gelir.
+let KITAP_BILGI = {};
+fetch('kitap-bilgi.json', { cache: 'no-store' })
+.then(r => (r.ok ? r.json() : {}))
+.then(j => { KITAP_BILGI = j || {}; if (S.view === 'kitap') render(); })
+.catch(() => {});
+const bilgiOf = b => KITAP_BILGI[b.id] || {};
+function tabAuthor(b) {
+const extra = bilgiOf(b).yazar || {};
+const name = extra.ad || b.author || 'Yazar belirtilmedi';
+const others = S.books.filter(x => x.id !== b.id && b.author && x.author === b.author);
+return `<section class="card"><h3>Yazar</h3><h2>${esc(name)}</h2><p class="about">${esc(extra.not || 'Bu yazar hakkında bilgi henüz eklenmedi.')}</p>${others.length ? `<p class="small muted">Kulüpte bu yazarın diğer kitapları: ${others.map(x => esc(x.title)).join(', ')}</p>` : ''}</section>`;
+}
+function tabInfo(b) {
+const info = b.info || {};
+const extra = bilgiOf(b);
+const rows = [['Yazar', b.author], ['Orijinal ad', extra.orijinal], ['Yayınevi', info.publisher], ['Yıl', info.year], ['Sayfa', info.pages], ['Tür', info.genre]].filter(r => r[1]);
+const facts = extra.bilgi || [];
+return `<section class="card"><h3>Künye</h3>${rows.length ? `<dl class="facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '<p class="muted">Künye bilgisi henüz yok.</p>'}</section><section class="card"><h3>İlginç bilgiler</h3>${facts.length ? `<ul class="feed">${facts.map(t => `<li><span>✦</span><span class="ft">${esc(t)}</span></li>`).join('')}</ul>` : '<p class="muted">Henüz bilgi eklenmedi.</p>'}</section>`;
+}
