@@ -1131,7 +1131,7 @@ const fmtSure = s => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600)
 const timerElapsed = () => (TIMER ? Math.floor((Date.now() - TIMER.start) / 1000) : 0);
 setInterval(() => { const el = document.getElementById('timer-out'); if (el && TIMER) el.textContent = fmtSure(timerElapsed()); }, 1000);
 function startTimer(bookId) {
-if (!needMe() || !bookId) return;
+if (!S.me || !bookId) return toast('Önce kim olduğunu seç.');
 TIMER = { bookId, start: Date.now() };
 localStorage.setItem('kulup-timer', JSON.stringify(TIMER));
 render();
@@ -1149,7 +1149,7 @@ toast('Oturum kaydedildi');
 render();
 }
 function saveMusic() {
-if (!needMe()) return;
+if (!S.me) return toast('Önce kim olduğunu seç.');
 let v = (document.getElementById('music-url').value || '').trim();
 if (v && !/^https?:/.test(v)) v = 'https://' + v;
 db.patch('profiles', slug(S.me), { name: S.me, music: v }).then(() => toast('Kaydedildi')).catch(fail);
@@ -1157,12 +1157,12 @@ db.patch('profiles', slug(S.me), { name: S.me, music: v }).then(() => toast('Kay
 function ensureSessions() {
 if (SESSION_SUB || !fs) return;
 SESSION_SUB = true;
-onSnapshot(collection(fs, 'sessions'), snap => { S.sessions = docs(snap); if (S.view === 'profil') render(); });
+onSnapshot(collection(fs, 'sessions'), snap => { S.sessions = snap.docs.filter(d => d.exists()).map(d => ({ ...d.data(), id: d.id })); if (S.view === 'profil') render(); });
 }
 function ensureProfiles() {
 if (PROFILE_SUB || !fs) return;
 PROFILE_SUB = true;
-onSnapshot(collection(fs, 'profiles'), snap => { S.profiles = Object.fromEntries(docs(snap).map(d => [d.id, d])); if (S.view === 'profil') render(); });
+onSnapshot(collection(fs, 'profiles'), snap => { S.profiles = Object.fromEntries(snap.docs.filter(d => d.exists()).map(d => ({ ...d.data(), id: d.id })).map(d => [d.id, d])); if (S.view === 'profil') render(); });
 }
 function musicEmbed(url) {
 if (!url) return '';
