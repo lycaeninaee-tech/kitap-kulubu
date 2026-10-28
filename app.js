@@ -1119,3 +1119,7 @@ const rows = [['Yazar', b.author], ['Orijinal ad', extra.orijinal], ['Yayınevi'
 const facts = extra.bilgi || [];
 return `<section class="card"><h3>Künye</h3>${rows.length ? `<dl class="facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '<p class="muted">Künye bilgisi henüz yok.</p>'}</section><section class="card"><h3>İlginç bilgiler</h3>${facts.length ? `<ul class="feed">${facts.map(t => `<li><span>✦</span><span class="ft">${esc(t)}</span></li>`).join('')}</ul>` : '<p class="muted">Henüz bilgi eklenmedi.</p>'}</section>`;
 }
+// Salt okunur izleyici: CONFIG.viewers listesindeki e-postalar kitapları görebilir, yazamaz.
+function viewerOf(u) {
+return !!u && (CONFIG.viewers || []).some(e => e.toLowerCase() === String(u.email || '').toLowerCase());
+}
