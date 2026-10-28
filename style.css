@@ -284,3 +284,15 @@ main { padding: 20px 16px 110px; gap: 18px; }
 .page-head h1 { font-size: 26px; }
 .subtabs { top: 0; }
 }
+/* Modern ve özgün dokunuşlar: kâğıt dokusu, kitap ayracı şeridi, damgalı avatarlar */
+body { background-color: #faf7f4; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.card { border-color: #ece6e1; box-shadow: 0 1px 2px rgba(20, 10, 10, 0.04), 0 10px 26px -18px rgba(20, 10, 10, 0.22); }
+.card > h3::before { content: ""; width: 7px; height: 7px; background: var(--accent); transform: rotate(45deg); flex: none; }
+.hero { box-shadow: 0 1px 2px rgba(20, 10, 10, 0.05), 0 20px 44px -26px rgba(20, 10, 10, 0.32); }
+.hero::after { content: ""; position: absolute; top: 0; right: 30px; width: 26px; height: 64px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); }
+.av { box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px var(--c); }
+.snav button.on { box-shadow: inset 3px 0 0 var(--accent); padding-left: 12px; }
+.subtabs button.on { font-weight: 700; }
+.page-head h1 { letter-spacing: -0.03em; }
+.bcard .cover { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 14px 26px -14px rgba(0, 0, 0, 0.45); }
+.btn { letter-spacing: 0.03em; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08); }
