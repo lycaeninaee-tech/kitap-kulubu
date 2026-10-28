@@ -787,7 +787,7 @@ function render() {
 
   if (!configured) view.innerHTML = viewSetup();
   else if (!S.authReady) view.innerHTML = '<div class="skel" aria-label="Yükleniyor"></div>';
-  else if (!S.me) view.innerHTML = viewLogin();
+  else if (!S.me && !viewerOf(S.user)) view.innerHTML = viewLogin();
   else if (S.loadError) view.innerHTML = `<div class="card empty"><h2>Kayıtlar açılamadı</h2><p class="muted">${esc(S.loadError)}</p></div>`;
   else if (!S.loaded) view.innerHTML = '<div class="skel" aria-label="Kulüp yükleniyor"></div>';
   else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : viewHome();
@@ -1078,8 +1078,8 @@ function init() {
     S.authReady = true;
     const m = user && CONFIG.members.find(x => x.email && x.email.toLowerCase() === String(user.email || '').toLowerCase());
     S.me = m ? m.name : '';
-    S.denied = !!user && !m;
-    if (S.me) startData();
+    S.denied = !!user && !m && !viewerOf(user);
+    if (S.me || viewerOf(user)) startData();
     render();
   });
 }
