@@ -597,7 +597,7 @@ function tabGeneral(b, id) {
         <h3>Okuma durumu</h3>
         <ul class="prog">${members().map(n => progRow(b, n)).join('')}</ul>
       </section>
-      ${readerCard(b, id)}
+      ${readerCard(b, id)} <section class="card"><button type="button" class="btn ghost sm" data-act="del" data-col="books" data-id="${id}">${S.armed === b.id ? 'Emin misin? Tekrar tıkla' : 'Kitabı sil'}</button></section>
     </div>
   </div>`;
 }
