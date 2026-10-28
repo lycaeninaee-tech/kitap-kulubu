@@ -99,7 +99,7 @@ input[type="range"] { padding: 0; border: 0; background: none; accent-color: var
 .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .linkbtn { font: inherit; font-weight: 700; font-size: 14px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
 .linkbtn:hover { text-decoration: underline; }
-.av { --c: var(--muted); width: 30px; height: 30px; flex: none; border-radius: 50%; background: var(--c); color: #ffffff; display: inline-grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 14px; line-height: 1; }
+.av { --c: var(--muted); width: 30px; height: 30px; flex: none; border-radius: 50%; background: var(--c); color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-body); font-weight: 700; font-size: 13px; line-height: 1; padding: 0; }
 .av.sm { width: 22px; height: 22px; font-size: 11px; }
 .av.lg { width: 52px; height: 52px; font-size: 22px; }
 .av.bot { background: var(--sunk); color: var(--ink); border: 1px solid var(--line); }
