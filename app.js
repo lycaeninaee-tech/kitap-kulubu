@@ -790,7 +790,7 @@ function render() {
   else if (!S.me && !viewerOf(S.user)) view.innerHTML = viewLogin();
   else if (S.loadError) view.innerHTML = `<div class="card empty"><h2>Kayıtlar açılamadı</h2><p class="muted">${esc(S.loadError)}</p></div>`;
   else if (!S.loaded) view.innerHTML = '<div class="skel" aria-label="Kulüp yükleniyor"></div>';
-  else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : S.view === 'profil' ? viewProfile() : viewHome();
+  else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : S.view === 'profil' ? viewProfile2() : viewHome();
 
   if (openDetails) view.querySelectorAll('details.more').forEach(d => { d.open = true; });
   for (const [id, v] of Object.entries(keep)) {
@@ -934,7 +934,7 @@ document.addEventListener('click', e => {
       if (n) db.patch('books/' + S.bookId + '/notes', id, { done: !n.done }).catch(fail);
       break;
     }
-    case 'tstart': startTimer(document.getElementById('timer-book') ? document.getElementById('timer-book').value : ''); break; case 'tstop': stopTimer(); break; case 'msave': saveMusic(); break; case 'generic': addGeneric(id); break;
+    case 'tstart': startTimer2(document.getElementById('timer-book') ? document.getElementById('timer-book').value : ''); break; case 'tstop': stopTimer2(); break; case 'treset': resetTimer2(); break; case 'msave': saveMusic(); break; case 'generic': addGeneric(id); break;
     case 'find': findCovers(id); break;
     case 'pick': {
       const x = (S.finds[id] || []).filter(c => c.cover)[Number(el.dataset.i)];
@@ -1192,6 +1192,107 @@ return `
 <section class="card"><h3>Son oturumlar</h3>${mine.length ? `<ul class="feed">${mine.slice(0, 6).map(s => `<li><span class="ft">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}</span><span class="small muted">${esc(fmtSure(s.seconds || 0))}</span></li>`).join('')}</ul>` : '<p class="muted small">Henüz oturum yok.</p>'}</section>
 </div>
 <section class="card"><h3>Müziğim</h3>${musicEmbed(prof.music) || '<p class="muted small">Spotify ya da YouTube bağlantını ekle, burada çalsın.</p>'}
+<label style="margin-top:14px">Bağlantı<input id="music-url" value="${esc(prof.music || '')}" placeholder="open.spotify.com/... ya da youtube.com/..."></label>
+<div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-act="msave">Kaydet</button>${prof.music ? `<a class="btn ghost sm" href="${esc(prof.music)}" target="_blank" rel="noopener">Uygulamada aç</a>` : ''}</div></section>`;
+}
+// Pomodoro ve sıfırlanabilir zamanlayıcı (profil sayfası)
+const P_FOCUS = 25 * 60, P_BREAK = 5 * 60;
+let T2 = null;
+try { T2 = JSON.parse(localStorage.getItem('kulup-timer2') || 'null'); } catch (e) { T2 = null; }
+const saveT2 = () => { if (T2) localStorage.setItem('kulup-timer2', JSON.stringify(T2)); else localStorage.removeItem('kulup-timer2'); };
+const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+function tickT2() {
+if (!T2 || !T2.pomo) return false;
+let changed = false;
+while (true) {
+const len = T2.phase === 'focus' ? P_FOCUS : P_BREAK;
+if ((Date.now() - T2.phaseStart) / 1000 < len) break;
+if (T2.phase === 'focus') { T2.focusDone += P_FOCUS; T2.cycles += 1; T2.phase = 'break'; } else { T2.phase = 'focus'; }
+T2.phaseStart += len * 1000;
+changed = true;
+}
+if (changed) saveT2();
+return changed;
+}
+function focusSecs2() {
+if (!T2) return 0;
+if (!T2.pomo) return Math.floor((Date.now() - T2.start) / 1000);
+return T2.focusDone + (T2.phase === 'focus' ? Math.floor((Date.now() - T2.phaseStart) / 1000) : 0);
+}
+function ringPct2() {
+if (!T2) return 0;
+if (!T2.pomo) return (Math.floor((Date.now() - T2.start) / 1000) % 3600) / 3600;
+const len = T2.phase === 'focus' ? P_FOCUS : P_BREAK;
+return Math.min(1, (Date.now() - T2.phaseStart) / 1000 / len);
+}
+function labelT2() {
+if (!T2) return '';
+if (!T2.pomo) return mmss(Math.floor((Date.now() - T2.start) / 1000));
+const len = T2.phase === 'focus' ? P_FOCUS : P_BREAK;
+return mmss(Math.max(0, len - Math.floor((Date.now() - T2.phaseStart) / 1000)));
+}
+const RING_R = 54, RING_C = 2 * Math.PI * RING_R;
+setInterval(() => {
+if (!T2) return;
+if (tickT2()) return render();
+const el = document.getElementById('timer-out'); if (el) el.textContent = labelT2();
+const ring = document.getElementById('timer-ring'); if (ring) ring.setAttribute('stroke-dashoffset', (RING_C * (1 - ringPct2())).toFixed(1));
+}, 1000);
+function startTimer2(bookId) {
+if (!S.me || !bookId) return toast('Önce kim olduğunu seç.');
+const box = document.getElementById('timer-pomo');
+const now = Date.now();
+T2 = { bookId, start: now, pomo: !!(box && box.checked), phase: 'focus', phaseStart: now, focusDone: 0, cycles: 0 };
+saveT2();
+render();
+}
+function resetTimer2() {
+T2 = null;
+saveT2();
+toast('Zamanlayıcı sıfırlandı');
+render();
+}
+async function stopTimer2() {
+if (!T2) return;
+const t = T2;
+const secs = focusSecs2();
+T2 = null;
+saveT2();
+if (secs >= 5 && fs) {
+await db.add('sessions', { by: slug(S.me), bookId: t.bookId, seconds: secs, at: nowISO() }).catch(fail);
+toast('Oturum kaydedildi');
+}
+render();
+}
+const st2 = document.createElement('style');
+st2.textContent = '.ring{position:relative;width:180px;height:180px;margin:4px auto 12px}.ring svg{width:100%;height:100%}.ring-t{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:2px}.ring-t b{font-family:var(--font-display);font-size:30px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}.ring-t span{font-size:12px;color:var(--muted)}';
+document.head.appendChild(st2);
+function viewProfile2() {
+ensureSessions();
+ensureProfiles();
+if (!S.me) return `<div class="page-head"><h1>Profilim</h1></div><div class="card empty"><p class="muted">Profilini görmek için önce kim olduğunu seç.</p></div>`;
+const me = slug(S.me);
+const mine = (S.sessions || []).filter(s => s.by === me).sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+const total = mine.reduce((a, s) => a + (s.seconds || 0), 0);
+const prof = (S.profiles || {})[me] || {};
+const running = T2 ? bookById(T2.bookId) : null;
+const opts = S.books.map(b => `<option value="${esc(b.id)}">${esc(b.title)}</option>`).join('');
+let timer;
+if (T2 && running) {
+const sub = T2.pomo ? (T2.phase === 'focus' ? 'Odak zamanı' : 'Mola') + ' · ' + T2.cycles + ' tur tamamlandı' : 'Serbest okuma';
+timer = `<div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${RING_R}" fill="none" stroke="var(--line)" stroke-width="8"/><circle id="timer-ring" cx="60" cy="60" r="${RING_R}" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${(RING_C * (1 - ringPct2())).toFixed(1)}" transform="rotate(-90 60 60)"/></svg><div class="ring-t"><b id="timer-out">${labelT2()}</b><span>${esc(sub)}</span></div></div><p class="small muted" style="text-align:center">${esc(running.title)}</p><div class="actions" style="justify-content:center;margin-top:12px"><button type="button" class="btn accent" data-act="tstop">Bitir ve kaydet</button><button type="button" class="btn ghost" data-act="treset">Sıfırla</button></div>`;
+} else {
+timer = `<label>Kitap<select id="timer-book">${opts}</select></label><label class="chk" style="margin-top:12px;justify-content:flex-start"><input type="checkbox" id="timer-pomo"> Pomodoro: 25 dk odak, 5 dk mola</label><div class="actions" style="margin-top:14px"><button type="button" class="btn accent" data-act="tstart">Başlat</button></div>`;
+}
+const embed = musicEmbed(prof.music);
+return `
+<div class="page-head"><div><p class="label">Profil</p><h1>${esc(S.me)}</h1></div></div>
+<div class="grid3">
+<section class="card"><h3>Toplam okuma</h3><p class="big">${esc(fmtSure(total))}</p><p class="small muted">${mine.length} oturum</p></section>
+<section class="card"><h3>Zamanlayıcı</h3>${timer}</section>
+<section class="card"><h3>Son oturumlar</h3>${mine.length ? `<ul class="feed">${mine.slice(0, 6).map(s => `<li><span class="ft">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}</span><span class="small muted">${esc(fmtSure(s.seconds || 0))}</span></li>`).join('')}</ul>` : '<p class="muted small">Henüz oturum yok.</p>'}</section>
+</div>
+<section class="card"><h3>Müziğim</h3>${embed || '<p class="muted small">Spotify ya da YouTube bağlantını ekle, burada çalsın.</p>'}
 <label style="margin-top:14px">Bağlantı<input id="music-url" value="${esc(prof.music || '')}" placeholder="open.spotify.com/... ya da youtube.com/..."></label>
 <div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-act="msave">Kaydet</button>${prof.music ? `<a class="btn ghost sm" href="${esc(prof.music)}" target="_blank" rel="noopener">Uygulamada aç</a>` : ''}</div></section>`;
 }
