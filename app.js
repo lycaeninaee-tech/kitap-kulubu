@@ -21,7 +21,7 @@ const GENERIC_Q = [
   'Bu kitabı kime önerirdin?',
 ];
 const TABS = [['genel', 'Genel'], ['yazar', 'Yazar'], ['bilgi', 'Bilgi'], ['once', 'Toplantı öncesi'], ['alinti', 'Alıntılar'], ['soru', 'Sorular'], ['toplanti', 'Toplantı']];
-const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart']];
+const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart'], ['profil', 'Profilim', 'pin']];
 const ICON = {
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   books: '<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16.5 4.8 3.8-1 3.2 15.4-3.8 1z" transform="translate(-2 .5)"/>',
@@ -790,7 +790,7 @@ function render() {
   else if (!S.me && !viewerOf(S.user)) view.innerHTML = viewLogin();
   else if (S.loadError) view.innerHTML = `<div class="card empty"><h2>Kayıtlar açılamadı</h2><p class="muted">${esc(S.loadError)}</p></div>`;
   else if (!S.loaded) view.innerHTML = '<div class="skel" aria-label="Kulüp yükleniyor"></div>';
-  else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : viewHome();
+  else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : S.view === 'profil' ? viewProfile() : viewHome();
 
   if (openDetails) view.querySelectorAll('details.more').forEach(d => { d.open = true; });
   for (const [id, v] of Object.entries(keep)) {
@@ -934,7 +934,7 @@ document.addEventListener('click', e => {
       if (n) db.patch('books/' + S.bookId + '/notes', id, { done: !n.done }).catch(fail);
       break;
     }
-    case 'generic': addGeneric(id); break;
+    case 'tstart': startTimer(document.getElementById('timer-book') ? document.getElementById('timer-book').value : ''); break; case 'tstop': stopTimer(); break; case 'msave': saveMusic(); break; case 'generic': addGeneric(id); break;
     case 'find': findCovers(id); break;
     case 'pick': {
       const x = (S.finds[id] || []).filter(c => c.cover)[Number(el.dataset.i)];
@@ -1122,4 +1122,76 @@ return `<section class="card"><h3>Künye</h3>${rows.length ? `<dl class="facts">
 // Salt okunur izleyici: CONFIG.viewers listesindeki e-postalar kitapları görebilir, yazamaz.
 function viewerOf(u) {
 return !!u && (CONFIG.viewers || []).some(e => e.toLowerCase() === String(u.email || '').toLowerCase());
+}
+// Profil sayfası: okuma zamanlayıcısı, müzik bağlantısı ve oturum geçmişi
+let TIMER = null;
+try { TIMER = JSON.parse(localStorage.getItem('kulup-timer') || 'null'); } catch (e) { TIMER = null; }
+let PROFILE_SUB = false, SESSION_SUB = false;
+const fmtSure = s => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + ' sa ' : '') + m + ' dk ' + String(x).padStart(2, '0') + ' sn'; };
+const timerElapsed = () => (TIMER ? Math.floor((Date.now() - TIMER.start) / 1000) : 0);
+setInterval(() => { const el = document.getElementById('timer-out'); if (el && TIMER) el.textContent = fmtSure(timerElapsed()); }, 1000);
+function startTimer(bookId) {
+if (!needMe() || !bookId) return;
+TIMER = { bookId, start: Date.now() };
+localStorage.setItem('kulup-timer', JSON.stringify(TIMER));
+render();
+}
+async function stopTimer() {
+if (!TIMER) return;
+const t = TIMER;
+const secs = timerElapsed();
+TIMER = null;
+localStorage.removeItem('kulup-timer');
+if (secs >= 5 && fs) {
+await db.add('sessions', { by: slug(S.me), bookId: t.bookId, seconds: secs, at: nowISO() }).catch(fail);
+toast('Oturum kaydedildi');
+}
+render();
+}
+function saveMusic() {
+if (!needMe()) return;
+let v = (document.getElementById('music-url').value || '').trim();
+if (v && !/^https?:/.test(v)) v = 'https://' + v;
+db.patch('profiles', slug(S.me), { name: S.me, music: v }).then(() => toast('Kaydedildi')).catch(fail);
+}
+function ensureSessions() {
+if (SESSION_SUB || !fs) return;
+SESSION_SUB = true;
+onSnapshot(collection(fs, 'sessions'), snap => { S.sessions = docs(snap); if (S.view === 'profil') render(); });
+}
+function ensureProfiles() {
+if (PROFILE_SUB || !fs) return;
+PROFILE_SUB = true;
+onSnapshot(collection(fs, 'profiles'), snap => { S.profiles = Object.fromEntries(docs(snap).map(d => [d.id, d])); if (S.view === 'profil') render(); });
+}
+function musicEmbed(url) {
+if (!url) return '';
+const sp = url.match(/open\.spotify\.com\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/);
+if (sp) return `<iframe src="https://open.spotify.com/embed/${sp[1]}/${sp[2]}" width="100%" height="152" frameborder="0" allow="encrypted-media" loading="lazy"></iframe>`;
+const vid = url.match(/[?&]v=([\w-]{11})|youtu\.be\/([\w-]{11})/);
+const list = (url.match(/list=([\w-]+)/) || [])[1];
+if (vid) return `<iframe src="https://www.youtube.com/embed/${vid[1] || vid[2]}" width="100%" height="200" frameborder="0" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+if (list) return `<iframe src="https://www.youtube.com/embed/videoseries?list=${list}" width="100%" height="200" frameborder="0" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+return '';
+}
+function viewProfile() {
+ensureSessions();
+ensureProfiles();
+if (!S.me) return `<div class="page-head"><h1>Profilim</h1></div><div class="card empty"><p class="muted">Profilini görmek için önce kim olduğunu seç.</p></div>`;
+const me = slug(S.me);
+const mine = (S.sessions || []).filter(s => s.by === me).sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+const total = mine.reduce((a, s) => a + (s.seconds || 0), 0);
+const prof = (S.profiles || {})[me] || {};
+const running = TIMER ? bookById(TIMER.bookId) : null;
+const opts = S.books.map(b => `<option value="${esc(b.id)}">${esc(b.title)}</option>`).join('');
+return `
+<div class="page-head"><div><p class="label">Profil</p><h1>${esc(S.me)}</h1></div></div>
+<div class="grid3">
+<section class="card"><h3>Toplam okuma</h3><p class="big">${esc(fmtSure(total))}</p><p class="small muted">${mine.length} oturum</p></section>
+<section class="card"><h3>Zamanlayıcı</h3>${TIMER && running ? `<p class="big" id="timer-out">${esc(fmtSure(timerElapsed()))}</p><p class="small muted">${esc(running.title)} okunuyor</p><div class="actions" style="margin-top:12px"><button type="button" class="btn accent" data-act="tstop">Durdur ve kaydet</button></div>` : `<label>Kitap<select id="timer-book">${opts}</select></label><div class="actions" style="margin-top:12px"><button type="button" class="btn accent" data-act="tstart">Başlat</button></div>`}</section>
+<section class="card"><h3>Son oturumlar</h3>${mine.length ? `<ul class="feed">${mine.slice(0, 6).map(s => `<li><span class="ft">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}</span><span class="small muted">${esc(fmtSure(s.seconds || 0))}</span></li>`).join('')}</ul>` : '<p class="muted small">Henüz oturum yok.</p>'}</section>
+</div>
+<section class="card"><h3>Müziğim</h3>${musicEmbed(prof.music) || '<p class="muted small">Spotify ya da YouTube bağlantını ekle, burada çalsın.</p>'}
+<label style="margin-top:14px">Bağlantı<input id="music-url" value="${esc(prof.music || '')}" placeholder="open.spotify.com/... ya da youtube.com/..."></label>
+<div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-act="msave">Kaydet</button>${prof.music ? `<a class="btn ghost sm" href="${esc(prof.music)}" target="_blank" rel="noopener">Uygulamada aç</a>` : ''}</div></section>`;
 }
