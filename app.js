@@ -21,7 +21,7 @@ const GENERIC_Q = [
   'Bu kitabı kime önerirdin?',
 ];
 const TABS = [['genel', 'Genel'], ['yazar', 'Yazar'], ['bilgi', 'Bilgi'], ['once', 'Toplantı öncesi'], ['alinti', 'Alıntılar'], ['soru', 'Sorular'], ['toplanti', 'Toplantı']];
-const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart'], ['profil', 'Profilim', 'pin']];
+const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart'], ['profil', 'Profilim', 'pin'], ['zamanlayici', 'Zamanlayıcı', 'clock']];
 const ICON = {
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   books: '<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16.5 4.8 3.8-1 3.2 15.4-3.8 1z" transform="translate(-2 .5)"/>',
@@ -790,7 +790,7 @@ function render() {
   else if (!S.me && !viewerOf(S.user)) view.innerHTML = viewLogin();
   else if (S.loadError) view.innerHTML = `<div class="card empty"><h2>Kayıtlar açılamadı</h2><p class="muted">${esc(S.loadError)}</p></div>`;
   else if (!S.loaded) view.innerHTML = '<div class="skel" aria-label="Kulüp yükleniyor"></div>';
-  else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : S.view === 'profil' ? viewProfile2() : viewHome();
+  else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : S.view === 'zamanlayici' ? viewTimer2() : S.view === 'profil' ? viewProfile2() : viewHome();
 
   if (openDetails) view.querySelectorAll('details.more').forEach(d => { d.open = true; });
   for (const [id, v] of Object.entries(keep)) {
@@ -1289,10 +1289,46 @@ return `
 <div class="page-head"><div><p class="label">Profil</p><h1>${esc(S.me)}</h1></div></div>
 <div class="grid3">
 <section class="card"><h3>Toplam okuma</h3><p class="big">${esc(fmtSure(total))}</p><p class="small muted">${mine.length} oturum</p></section>
-<section class="card"><h3>Zamanlayıcı</h3>${timer}</section>
+<section class="card"><h3>Bugün</h3><p class="big">${esc(fmtSure(todaySecs2(mine)))}</p><p class="small muted">Seri: ${streakDays2(mine)} gün · Zamanlayıcı sayfasından oku</p></section>
 <section class="card"><h3>Son oturumlar</h3>${mine.length ? `<ul class="feed">${mine.slice(0, 6).map(s => `<li><span class="ft">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}</span><span class="small muted">${esc(fmtSure(s.seconds || 0))}</span></li>`).join('')}</ul>` : '<p class="muted small">Henüz oturum yok.</p>'}</section>
 </div>
 <section class="card"><h3>Müziğim</h3>${embed || '<p class="muted small">Spotify ya da YouTube bağlantını ekle, burada çalsın.</p>'}
 <label style="margin-top:14px">Bağlantı<input id="music-url" value="${esc(prof.music || '')}" placeholder="open.spotify.com/... ya da youtube.com/..."></label>
 <div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-act="msave">Kaydet</button>${prof.music ? `<a class="btn ghost sm" href="${esc(prof.music)}" target="_blank" rel="noopener">Uygulamada aç</a>` : ''}</div></section>`;
+}
+// Profil özeti ve ayrı Zamanlayıcı sayfası
+const dayKey2 = d => d.toISOString().slice(0, 10);
+function todaySecs2(mine) {
+const k = dayKey2(new Date());
+return mine.filter(s => (s.at || '').slice(0, 10) === k).reduce((a, s) => a + (s.seconds || 0), 0);
+}
+function streakDays2(mine) {
+const days = new Set(mine.map(s => (s.at || '').slice(0, 10)));
+let d = new Date();
+if (!days.has(dayKey2(d))) d = new Date(Date.now() - 86400000);
+let n = 0;
+while (days.has(dayKey2(d))) { n++; d = new Date(d.getTime() - 86400000); }
+return n;
+}
+function viewTimer2() {
+ensureSessions();
+ensureProfiles();
+if (!S.me) return `<div class="page-head"><h1>Zamanlayıcı</h1></div><div class="card empty"><p class="muted">Önce kim olduğunu seç.</p></div>`;
+const me = slug(S.me);
+const mine = (S.sessions || []).filter(s => s.by === me).sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+const running = T2 ? bookById(T2.bookId) : null;
+const opts = S.books.map(b => `<option value="${esc(b.id)}">${esc(b.title)}</option>`).join('');
+let body;
+if (T2 && running) {
+const sub = T2.pomo ? (T2.phase === 'focus' ? 'Odak zamanı' : 'Mola') + ' · ' + T2.cycles + ' tur tamamlandı' : 'Serbest okuma';
+body = `<div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${RING_R}" fill="none" stroke="var(--line)" stroke-width="8"/><circle id="timer-ring" cx="60" cy="60" r="${RING_R}" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${(RING_C * (1 - ringPct2())).toFixed(1)}" transform="rotate(-90 60 60)"/></svg><div class="ring-t"><b id="timer-out">${labelT2()}</b><span>${esc(sub)}</span></div></div><p class="small muted" style="text-align:center">${esc(running.title)}</p><div class="actions" style="justify-content:center;margin-top:12px"><button type="button" class="btn accent" data-act="tstop">Bitir ve kaydet</button><button type="button" class="btn ghost" data-act="treset">Sıfırla</button></div>`;
+} else {
+body = `<label>Kitap<select id="timer-book">${opts}</select></label><label class="chk" style="margin-top:12px;justify-content:flex-start"><input type="checkbox" id="timer-pomo"> Pomodoro: 25 dk odak, 5 dk mola</label><div class="actions" style="margin-top:14px"><button type="button" class="btn accent" data-act="tstart">Başlat</button></div>`;
+}
+return `
+<div class="page-head"><div><p class="label">Zamanlayıcı</p><h1>Odaklanma</h1></div></div>
+<div class="cols even">
+<section class="card"><h3>Oturum</h3>${body}</section>
+<section class="card"><h3>Son oturumlar</h3>${mine.length ? `<ul class="feed">${mine.slice(0, 10).map(s => `<li><span class="ft">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}</span><span class="small muted">${esc(fmtSure(s.seconds || 0))}</span></li>`).join('')}</ul>` : '<p class="muted small">Henüz oturum yok.</p>'}</section>
+</div>`;
 }
