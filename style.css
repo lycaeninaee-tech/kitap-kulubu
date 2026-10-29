@@ -378,6 +378,18 @@ input, select, textarea { background: var(--surface); border-radius: 12px; }
 .heat-legend i { width: 12px; }
 .hbars li { grid-template-columns: minmax(0, 8em) minmax(0, 1fr) 4.4em; }
 .hbars .bar span { background: var(--accent); }
+/* Ayrıntılı öneri kartı: kapak + oy solda, künye ve tanıtım sağda */
+.sugg.sugg-rich { grid-template-columns: 96px minmax(0, 1fr); gap: 18px; }
+.sugg-side { display: grid; gap: 10px; align-content: start; }
+.sugg-side .vote { width: 100%; }
+.sugg-side .rank { text-align: center; }
+.sugg-side .cover.ph .ph-t { font-size: 12px; }
+.sugg-desc summary { cursor: pointer; list-style: none; font-size: 14px; line-height: 1.55; color: var(--ink); }
+.sugg-desc summary::-webkit-details-marker { display: none; }
+.sugg-desc summary::after { content: " Devamı"; color: var(--accent); font-weight: 600; }
+.sugg-desc[open] summary { display: none; }
+.sugg-desc p { font-size: 14px; line-height: 1.6; }
+@media (max-width: 460px) { .sugg.sugg-rich { grid-template-columns: 72px minmax(0, 1fr); gap: 14px; } }
 /* Ses notları */
 .voice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .btn.rec { background: #b5402a; border-color: #b5402a; animation: recpulse 1.4s ease-in-out infinite; }
