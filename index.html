@@ -42,5 +42,18 @@
 <nav class="tabbar" id="tabbar" aria-label="Bölümler"></nav>
 <div class="toast" id="toast" role="status" hidden></div>
 <script type="module" src="app.js"></script>
-<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script></body>
+<script>
+// Önbellek katmanı: yeni sürüm yayınlanınca sayfa bir kez kendiliğinden yenilenir (ilk kurulumda değil).
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && !reloaded) { reloaded = true; location.reload(); }
+  });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+    // Uzun süre açık kalan sekmeler de güncellemeyi yakalasın
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+}
+</script></body>
 </html>
