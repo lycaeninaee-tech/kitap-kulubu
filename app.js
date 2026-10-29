@@ -21,13 +21,15 @@ const GENERIC_Q = [
   'Bu kitabı kime önerirdin?',
 ];
 const TABS = [['genel', 'Genel'], ['yazar', 'Yazar'], ['bilgi', 'Bilgi'], ['once', 'Toplantı öncesi'], ['alinti', 'Alıntılar'], ['soru', 'Sorular'], ['toplanti', 'Toplantı']];
-const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart'], ['profil', 'Profilim', 'pin'], ['zamanlayici', 'Zamanlayıcı', 'clock']];
+const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart'], ['profil', 'Profilim', 'pin'], ['zamanlayici', 'Zamanlayıcı', 'clock'], ['takip', 'Takip', 'chart']];
 const ICON = {
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   books: '<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16.5 4.8 3.8-1 3.2 15.4-3.8 1z" transform="translate(-2 .5)"/>',
   heart: '<path d="M12 20s-7.5-4.6-9.3-9.2C1.4 7.3 3.6 4 7 4c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 5.6 3.3 4.3 6.8C19.5 15.4 12 20 12 20z"/>',
   cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  chart: '<path d="M3 20h18M6 20v-6M11 20V8M16 20v-9M21 20V4"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   pin: '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
   house: '<path d="M4 11 12 4l8 7v9H4z"/><path d="M10 20v-5h4v5"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
@@ -158,9 +160,59 @@ function noteHTML(n, b) {
     : 'Spoiler içeriyor. Görmek için dokun.';
   return `<li class="note">
     <div class="nm">${isMember ? avatar(n.by, 'sm') : `<span class="av sm bot" aria-hidden="true">✦</span>`}<strong>${esc(n.by || 'Adsız')}</strong><span class="muted small">${esc(dateTR(n.at, { day: 'numeric', month: 'short' }))}${typeof n.pct === 'number' ? ' · %' + n.pct + ' noktasında' : ''}</span>${n.auto ? '<span class="badge">otomatik · doğrulayın</span>' : ''}${n.spoiler ? '<span class="badge sp">spoiler</span>' : ''}${delBtn(n, col)}</div>
-    ${hidden ? `<button type="button" class="spoiler" data-act="reveal" data-id="${esc(n.id)}">${why}</button>` : `<p class="nt">${esc(n.text)}</p>`}
+    ${hidden ? `<button type="button" class="spoiler" data-act="reveal" data-id="${esc(n.id)}">${why}</button>` : n.audio ? `<div class="vnote">${icon('mic')}<audio controls preload="none" src="${esc(n.audio)}"></audio><span class="muted small">${esc(n.dur || '')} sn</span></div>` : `<p class="nt">${esc(n.text)}</p>`}
     ${n.source ? `<p class="src"><a href="${esc(n.source)}" target="_blank" rel="noopener">Kaynağa git</a></p>` : ''}
   </li>`;
+}
+// Ses notları: en çok 30 sn, düşük bit hızıyla kaydedilip not belgesine data URL olarak gömülür (Storage kullanılmıyor).
+// 24 kbit/sn ile 30 sn yaklaşık 120 KB eder; Firestore'un 1 MB belge sınırının çok altında.
+const VOICE_MAX = 30;
+let REC = null;
+async function startVoice() {
+  if (!S.me || !S.bookId) return toast('Önce kim olduğunu seç.');
+  if (REC) return;
+  if (!navigator.mediaDevices || !window.MediaRecorder) return toast('Bu tarayıcı ses kaydını desteklemiyor.');
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (err) { return toast('Mikrofon izni verilmedi.'); }
+  const type = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported(t));
+  const rec = new MediaRecorder(stream, { ...(type ? { mimeType: type } : {}), audioBitsPerSecond: 24000 });
+  const chunks = [];
+  const bookId = S.bookId;
+  const start = Date.now();
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    clearInterval(REC.tick);
+    REC = null;
+    render();
+    const dur = Math.min(VOICE_MAX, Math.round((Date.now() - start) / 1000));
+    if (dur < 1) return toast('Kayıt çok kısa.');
+    saveVoice(new Blob(chunks, { type: rec.mimeType || type || 'audio/webm' }), bookId, dur);
+  };
+  REC = { rec, tick: setInterval(() => {
+    const s = Math.floor((Date.now() - start) / 1000);
+    const el = document.getElementById('rec-out');
+    if (el) el.textContent = `${s} / ${VOICE_MAX} sn`;
+    if (s >= VOICE_MAX) stopVoice();
+  }, 250) };
+  rec.start();
+  render();
+}
+function stopVoice() {
+  if (REC && REC.rec.state !== 'inactive') REC.rec.stop();
+}
+function saveVoice(blob, bookId, dur) {
+  const r = new FileReader();
+  r.onload = async () => {
+    if (r.result.length > 900000) return toast('Ses notu çok büyük oldu, daha kısa kaydet.');
+    const b = bookById(bookId);
+    const sp = document.getElementById('f-own-sp');
+    const data = { kind: 'own', by: S.me, text: `Ses notu (${dur} sn)`, audio: r.result, dur, at: nowISO() };
+    if (b) data.pct = myProgress(b);
+    if (sp && sp.checked) data.spoiler = true;
+    try { await db.add('books/' + bookId + '/notes', data); toast('Ses notu eklendi'); } catch (err) { fail(err); }
+  };
+  r.readAsDataURL(blob);
 }
 const delBtn = (n, col) => n.by === S.me
   ? `<button type="button" class="del${S.armed === n.id ? ' armed' : ''}" data-act="del" data-col="${esc(col)}" data-id="${esc(n.id)}">${S.armed === n.id ? 'Silinsin mi?' : 'Sil'}</button>`
@@ -656,6 +708,9 @@ function tabBefore(b) {
       <form class="stack" data-form="own">
         <textarea id="f-own" name="text" rows="3" required placeholder="Kitap ve yazar hakkında düşüncelerin" data-draft></textarea>
         <label class="chk" style="justify-self:start"><input id="f-own-sp" type="checkbox" name="spoiler" data-draft>Spoiler içeriyor</label>
+        <div class="voice">${REC
+          ? `<button type="button" class="btn sm rec" data-act="vstop">Kaydı bitir ve ekle</button><span class="small muted" id="rec-out">0 / ${VOICE_MAX} sn</span>`
+          : `<button type="button" class="btn ghost sm" data-act="vstart">${icon('mic')}Ses notu kaydet</button><span class="small muted">en çok ${VOICE_MAX} saniye</span>`}</div>
         <p class="muted small">Notun, kitabın neresinde olduğunla (%${myProgress(b)}) birlikte kaydedilir. Henüz oraya gelmemiş olanlar için kapalı durur.</p>
         <div class="actions"><button class="btn accent sm" type="submit">Notumu ekle</button></div>
       </form>
@@ -790,7 +845,7 @@ function render() {
   else if (!S.me && !viewerOf(S.user)) view.innerHTML = viewLogin();
   else if (S.loadError) view.innerHTML = `<div class="card empty"><h2>Kayıtlar açılamadı</h2><p class="muted">${esc(S.loadError)}</p></div>`;
   else if (!S.loaded) view.innerHTML = '<div class="skel" aria-label="Kulüp yükleniyor"></div>';
-  else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : S.view === 'zamanlayici' ? viewTimer2() : S.view === 'profil' ? viewProfile2() : viewHome();
+  else view.innerHTML = S.view === 'kitap' ? viewBook() : S.view === 'kitaplik' ? viewLibrary() : S.view === 'oneriler' ? viewSugg() : S.view === 'zamanlayici' ? viewTimer2() : S.view === 'takip' ? viewHabit() : S.view === 'profil' ? viewProfile2() : viewHome();
 
   if (openDetails) view.querySelectorAll('details.more').forEach(d => { d.open = true; });
   for (const [id, v] of Object.entries(keep)) {
@@ -817,7 +872,7 @@ function go(view, extra = {}) {
 function readHash() {
   const h = decodeURIComponent((location.hash || '').slice(1));
   if (h.startsWith('kitap-')) { S.view = 'kitap'; S.bookId = h.slice(6); S.tab = 'genel'; }
-  else if (['buay', 'kitaplik', 'oneriler'].includes(h)) S.view = h;
+  else if (VIEWS.some(([k]) => k === h)) S.view = h;
 }
 readHash();
 window.addEventListener('hashchange', () => { readHash(); render(); });
@@ -935,6 +990,8 @@ document.addEventListener('click', e => {
       break;
     }
     case 'tstart': startTimer2(document.getElementById('timer-book') ? document.getElementById('timer-book').value : ''); break; case 'tstop': stopTimer2(); break; case 'treset': resetTimer2(); break; case 'msave': saveMusic(); break; case 'gsave': saveGoal(); break; case 'generic': addGeneric(id); break;
+    case 'vstart': startVoice(); break;
+    case 'vstop': stopVoice(); break;
     case 'find': findCovers(id); break;
     case 'pick': {
       const x = (S.finds[id] || []).filter(c => c.cover)[Number(el.dataset.i)];
@@ -967,7 +1024,14 @@ document.addEventListener('change', e => {
     case 'mplace': upd(id, { meetingPlace: el.value.trim() }); break;
     case 'host': upd(id, { host: el.value }); break;
     case 'mood': upd(id, { mood: { [slug(S.me)]: { [el.value]: el.checked } } }); break;
-    case 'progress': upd(id, { progress: { [slug(S.me)]: Number(el.value) } }); break; case 'page': { const b = bookById(id); const pg = Number(el.value) || 0; const pct = pagesOf(b) ? Math.min(100, Math.round(pg / pagesOf(b) * 100)) : 0; upd(id, { progress: { [slug(S.me)]: pct }, pageRead: { [slug(S.me)]: pg } }); break; } case 'page': { const b = bookById(id); const pg = Number(el.value) || 0; const pct = pagesOf(b) ? Math.min(100, Math.round(pg / pagesOf(b) * 100)) : 0; upd(id, { progress: { [slug(S.me)]: pct }, pageRead: { [slug(S.me)]: pg } }); break; }
+    case 'progress': upd(id, { progress: { [slug(S.me)]: Number(el.value) } }); break;
+    case 'page': {
+      const b = bookById(id);
+      const pg = Number(el.value) || 0;
+      const pct = pagesOf(b) ? Math.min(100, Math.round(pg / pagesOf(b) * 100)) : 0;
+      upd(id, { progress: { [slug(S.me)]: pct }, pageRead: { [slug(S.me)]: pg } });
+      break;
+    }
     case 'cover': { const f = el.files && el.files[0]; el.value = ''; if (f) uploadFile(id, f); break; }
     case 'nbphoto': { const f = el.files && el.files[0]; el.value = ''; takePhoto(f); break; }
   }
@@ -1123,31 +1187,10 @@ return `<section class="card"><h3>Künye</h3>${rows.length ? `<dl class="facts">
 function viewerOf(u) {
 return !!u && (CONFIG.viewers || []).some(e => e.toLowerCase() === String(u.email || '').toLowerCase());
 }
-// Profil sayfası: okuma zamanlayıcısı, müzik bağlantısı ve oturum geçmişi
-let TIMER = null;
-try { TIMER = JSON.parse(localStorage.getItem('kulup-timer') || 'null'); } catch (e) { TIMER = null; }
+// Profil sayfası: müzik bağlantısı ve oturum geçmişi
+try { localStorage.removeItem('kulup-timer'); } catch (e) {}
 let PROFILE_SUB = false, SESSION_SUB = false;
 const fmtSure = s => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + ' sa ' : '') + m + ' dk ' + String(x).padStart(2, '0') + ' sn'; };
-const timerElapsed = () => (TIMER ? Math.floor((Date.now() - TIMER.start) / 1000) : 0);
-setInterval(() => { const el = document.getElementById('timer-out'); if (el && TIMER) el.textContent = fmtSure(timerElapsed()); }, 1000);
-function startTimer(bookId) {
-if (!S.me || !bookId) return toast('Önce kim olduğunu seç.');
-TIMER = { bookId, start: Date.now() };
-localStorage.setItem('kulup-timer', JSON.stringify(TIMER));
-render();
-}
-async function stopTimer() {
-if (!TIMER) return;
-const t = TIMER;
-const secs = timerElapsed();
-TIMER = null;
-localStorage.removeItem('kulup-timer');
-if (secs >= 5 && fs) {
-await db.add('sessions', { by: slug(S.me), bookId: t.bookId, seconds: secs, at: nowISO() }).catch(fail);
-toast('Oturum kaydedildi');
-}
-render();
-}
 function saveMusic() {
 if (!S.me) return toast('Önce kim olduğunu seç.');
 let v = (document.getElementById('music-url').value || '').trim();
@@ -1164,7 +1207,7 @@ SESSION_SUB = true;
 onSnapshot(collection(fs, 'sessions'), snap => {
 S.sessions = snap.docs.filter(d => d.exists()).map(d => ({ ...d.data(), id: d.id }));
 const list = document.getElementById('timer-sessions');
-if (S.view === 'profil') render();
+if (S.view === 'profil' || S.view === 'takip') render();
 else if (S.view === 'zamanlayici' && list) list.innerHTML = sessionsList2(mySessions2(), 10);
 });
 }
@@ -1182,27 +1225,6 @@ const list = (url.match(/list=([\w-]+)/) || [])[1];
 if (vid) return `<iframe src="https://www.youtube.com/embed/${vid[1] || vid[2]}" width="100%" height="200" frameborder="0" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
 if (list) return `<iframe src="https://www.youtube.com/embed/videoseries?list=${list}" width="100%" height="200" frameborder="0" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
 return '';
-}
-function viewProfile() {
-ensureSessions();
-ensureProfiles();
-if (!S.me) return `<div class="page-head"><h1>Profilim</h1></div><div class="card empty"><p class="muted">Profilini görmek için önce kim olduğunu seç.</p></div>`;
-const me = slug(S.me);
-const mine = (S.sessions || []).filter(s => s.by === me).sort((a, b) => (b.at || '').localeCompare(a.at || ''));
-const total = mine.reduce((a, s) => a + (s.seconds || 0), 0);
-const prof = (S.profiles || {})[me] || {};
-const running = TIMER ? bookById(TIMER.bookId) : null;
-const opts = S.books.map(b => `<option value="${esc(b.id)}">${esc(b.title)}</option>`).join('');
-return `
-<div class="page-head"><div><p class="label">Profil</p><h1>${esc(S.me)}</h1></div></div>
-<div class="grid3">
-<section class="card"><h3>Toplam okuma</h3><p class="big">${esc(fmtSure(total))}</p><p class="small muted">${mine.length} oturum</p></section>
-<section class="card"><h3>Zamanlayıcı</h3>${TIMER && running ? `<p class="big" id="timer-out">${esc(fmtSure(timerElapsed()))}</p><p class="small muted">${esc(running.title)} okunuyor</p><div class="actions" style="margin-top:12px"><button type="button" class="btn accent" data-act="tstop">Durdur ve kaydet</button></div>` : `<label>Kitap<select id="timer-book">${opts}</select></label><div class="actions" style="margin-top:12px"><button type="button" class="btn accent" data-act="tstart">Başlat</button></div>`}</section>
-<section class="card"><h3>Son oturumlar</h3>${mine.length ? `<ul class="feed">${mine.slice(0, 6).map(s => `<li><span class="ft">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}</span><span class="small muted">${esc(fmtSure(s.seconds || 0))}</span></li>`).join('')}</ul>` : '<p class="muted small">Henüz oturum yok.</p>'}</section>
-</div>
-<section class="card"><h3>Müziğim</h3>${musicEmbed(prof.music) || '<p class="muted small">Spotify ya da YouTube bağlantını ekle, burada çalsın.</p>'}
-<label style="margin-top:14px">Bağlantı<input id="music-url" value="${esc(prof.music || '')}" placeholder="open.spotify.com/... ya da youtube.com/..."></label>
-<div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-act="msave">Kaydet</button>${prof.music ? `<a class="btn ghost sm" href="${esc(prof.music)}" target="_blank" rel="noopener">Uygulamada aç</a>` : ''}</div></section>`;
 }
 // Zamanlayıcı: serbest okuma, odak/mola döngüleri ve geri sayım
 // T2.mode: 'free' (kronometre), 'cycle' (odak + mola turları), 'count' (geri sayım)
@@ -1345,13 +1367,15 @@ return `
 ${profExtras2(mine, prof)}`;
 }
 // Profil özeti ve ayrı Zamanlayıcı sayfası
-const dayKey2 = d => d.toISOString().slice(0, 10);
+// Gün anahtarları yerel saate göre (Türkiye'de gece yarısından sonraki okumalar doğru güne düşsün)
+const dayKey2 = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const sessDay2 = s => (s.at ? dayKey2(new Date(s.at)) : '');
 function todaySecs2(mine) {
 const k = dayKey2(new Date());
-return mine.filter(s => (s.at || '').slice(0, 10) === k).reduce((a, s) => a + (s.seconds || 0), 0);
+return mine.filter(s => sessDay2(s) === k).reduce((a, s) => a + (s.seconds || 0), 0);
 }
 function streakDays2(mine) {
-const days = new Set(mine.map(s => (s.at || '').slice(0, 10)));
+const days = new Set(mine.map(sessDay2));
 let d = new Date();
 if (!days.has(dayKey2(d))) d = new Date(Date.now() - 86400000);
 let n = 0;
@@ -1411,7 +1435,7 @@ function profExtras2(mine, prof) {
 const days = [...Array(7)].map((_, i) => {
 const d = new Date(Date.now() - (6 - i) * 86400000);
 const k = dayKey2(d);
-return { label: d.toLocaleDateString('tr-TR', { weekday: 'short' }), secs: mine.filter(s => (s.at || '').slice(0, 10) === k).reduce((a, s) => a + (s.seconds || 0), 0) };
+return { label: d.toLocaleDateString('tr-TR', { weekday: 'short' }), secs: mine.filter(s => sessDay2(s) === k).reduce((a, s) => a + (s.seconds || 0), 0) };
 });
 const weekMin = Math.round(days.reduce((a, d) => a + d.secs, 0) / 60);
 const goal = prof.goalMin || 0;
@@ -1425,4 +1449,79 @@ return `<div class="grid3">
 <section class="card"><h3>Son 7 gün</h3><div class="chart7">${bars}</div></section>
 <section class="card"><h3>Bırakılan kitaplar</h3>${droppedHtml}</section>
 </div>`;
+}
+// Takip: kişiye özel okuma alışkanlığı, zamanlayıcı oturumlarından hesaplanır
+const HEAT_WEEKS = 18;
+const WEEKDAYS2 = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const WEEKDAYS_LONG2 = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+const DAYPARTS2 = [['Sabah', 5, 12], ['Öğleden sonra', 12, 17], ['Akşam', 17, 22], ['Gece', 22, 29]];
+const dk2 = secs => Math.round(secs / 60) + ' dk';
+function barsList2(rows) {
+const max = Math.max(1, ...rows.map(r => r[1]));
+return `<ul class="moodbars hbars">${rows.map(([label, secs]) => `<li><span>${esc(label)}</span><span class="bar"><span style="width:${Math.round(secs / max * 100)}%"></span></span><span class="pct">${dk2(secs)}</span></li>`).join('')}</ul>`;
+}
+function longestStreak2(keys) {
+let best = 0, run = 0, prev = null;
+keys.sort().forEach(k => {
+const d = new Date(k + 'T12:00:00');
+run = prev && Math.round((d - prev) / 86400000) === 1 ? run + 1 : 1;
+best = Math.max(best, run);
+prev = d;
+});
+return best;
+}
+function viewHabit() {
+ensureSessions();
+ensureProfiles();
+if (!S.me) return `<div class="page-head"><h1>Takip</h1></div><div class="card empty"><p class="muted">Önce kim olduğunu seç.</p></div>`;
+const mine = mySessions2();
+const byDay = {};
+mine.forEach(s => { const k = sessDay2(s); if (k) byDay[k] = (byDay[k] || 0) + (s.seconds || 0); });
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const dayAt = n => { const d = new Date(today); d.setDate(today.getDate() + n); return d; };
+// Isı haritası: sütunlar hafta (Pazartesi başlar), satırlar gün
+const first = -((today.getDay() + 6) % 7) - 7 * (HEAT_WEEKS - 1);
+const cells = [...Array(HEAT_WEEKS * 7)].map((_, i) => {
+const d = dayAt(first + i);
+if (d > today) return '<i class="f"></i>';
+const secs = byDay[dayKey2(d)] || 0;
+const m = secs / 60;
+const lvl = !secs ? 0 : m < 10 ? 1 : m < 20 ? 2 : m < 40 ? 3 : 4;
+return `<i class="l${lvl}" title="${esc(d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }))}: ${dk2(secs)}"></i>`;
+}).join('');
+const last30 = [...Array(30)].map((_, i) => byDay[dayKey2(dayAt(-i))] || 0);
+const active30 = last30.filter(Boolean).length;
+const total30 = last30.reduce((a, b) => a + b, 0);
+const parts = DAYPARTS2.map(([label, from, to]) => [label, mine.filter(s => { const h = new Date(s.at).getHours(); const x = h < 5 ? h + 24 : h; return x >= from && x < to; }).reduce((a, s) => a + (s.seconds || 0), 0)]);
+const week = WEEKDAYS2.map((label, i) => [label, mine.filter(s => (new Date(s.at).getDay() + 6) % 7 === i).reduce((a, s) => a + (s.seconds || 0), 0)]);
+const perBook = {};
+mine.forEach(s => { perBook[s.bookId] = (perBook[s.bookId] || 0) + (s.seconds || 0); });
+const books = Object.entries(perBook).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, secs]) => [(bookById(id) || {}).title || 'Silinmiş kitap', secs]);
+const monthKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+const thisM = monthKey(today), prevM = monthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+const monthSum = key => Object.entries(byDay).filter(([k]) => k.startsWith(key)).reduce((a, [, v]) => a + v, 0);
+const nowM = monthSum(thisM), lastM = monthSum(prevM);
+const topPart = parts.slice().sort((a, b) => b[1] - a[1])[0];
+const topDay = WEEKDAYS_LONG2[week.indexOf(week.slice().sort((a, b) => b[1] - a[1])[0])];
+const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay)}</b> günleri okuyorsun.` : 'Zamanlayıcıyla okudukça alışkanlıkların burada belirecek.';
+return `
+<div class="page-head"><div><p class="label">Takip</p><h1>Okuma alışkanlığım</h1></div></div>
+<p class="muted">${insight}</p>
+<div class="stats">
+<div class="stat"><span>Şu anki seri</span><b>${streakDays2(mine)} gün</b></div>
+<div class="stat"><span>En uzun seri</span><b>${longestStreak2(Object.keys(byDay))} gün</b></div>
+<div class="stat"><span>Son 30 gün</span><b>${active30} gün</b></div>
+<div class="stat"><span>Okunan günlerde ort.</span><b>${active30 ? dk2(total30 / active30) : '–'}</b></div>
+</div>
+<section class="card"><h3>Son ${HEAT_WEEKS} hafta</h3>
+<div class="heat-wrap"><div class="heat-days">${WEEKDAYS2.map((d, i) => `<span>${i % 2 ? '' : d}</span>`).join('')}</div><div class="heat">${cells}</div></div>
+<div class="heat-legend">Az<i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>Çok</div>
+</section>
+<div class="grid3">
+<section class="card"><h3>Günün saatleri</h3>${barsList2(parts)}</section>
+<section class="card"><h3>Haftanın günleri</h3>${barsList2(week)}</section>
+<section class="card"><h3>Bu ay</h3><p class="big">${Math.round(nowM / 60)}<small> dk</small></p><p class="small muted">Geçen ay ${dk2(lastM)}${lastM ? ` · ${nowM >= lastM ? '+' : '-'}%${Math.abs(Math.round((nowM - lastM) / lastM * 100))}` : ''}</p></section>
+</div>
+<section class="card"><h3>Kitaplara göre</h3>${books.length ? barsList2(books) : '<p class="muted small">Henüz oturum yok.</p>'}</section>`;
 }
