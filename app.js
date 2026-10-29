@@ -506,7 +506,6 @@ function viewLibrary() {
     return `<section class="shelf-row">
       <div class="rail-head"><h2 class="sec-title">${title} <span class="count">${list.length}</span></h2></div>
       <div class="rail shelf-rail">${list.map(railItem).join('')}${add}</div>
-      <div class="ledge" aria-hidden="true"></div>
     </section>`;
   }).join('');
   return `
@@ -1864,8 +1863,9 @@ var ANIM_NEXT = false, FIRST_ANIM_DONE = false, REVEAL_IO = null;
 function reduceMotion() { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
 function pageChange(run) {
   ANIM_NEXT = true;
-  if (document.startViewTransition && !reduceMotion()) document.startViewTransition(run);
-  else run();
+  // Sekme arka plandaysa ya da tarayıcı desteklemiyorsa geçişsiz çiz; geçiş hata verirse de sayfa yine çizilsin
+  if (!document.startViewTransition || reduceMotion() || document.hidden) return run();
+  try { document.startViewTransition(run).updateCallbackDone.catch(err => { console.error(err); run(); }); } catch (err) { run(); }
 }
 const REVEAL_SEL = '.stage-text > *, .stage-cover, .tile, .card, .rail-section, .shelf-row, .numbers > div, .timeline li, .stats .stat, .marquee, .page-head, .rozet, .chart30';
 function enhance(root) {
@@ -1932,14 +1932,12 @@ function chart30(byDay) {
   const active = vals.filter(Boolean);
   const avg = active.length ? Math.round(active.reduce((a, b) => a + b, 0) / active.length) : 0;
   const avgY = H - P - avg / max * (H - 2 * P);
-  const best = vals.indexOf(Math.max(...vals));
   const lbl = d => d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
   return `<svg class="c30" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Son 30 günde günlük okuma dakikaları">
     <defs><linearGradient id="g30" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".35"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
     ${avg ? `<line x1="${P}" x2="${W - P}" y1="${avgY.toFixed(1)}" y2="${avgY.toFixed(1)}" class="c30-avg"/>` : ''}
     <path d="${area}" fill="url(#g30)" class="c30-area"/>
     <path d="${line}" class="c30-line" pathLength="1"/>
-    ${vals[best] ? `<circle cx="${pts[best][0].toFixed(1)}" cy="${pts[best][1].toFixed(1)}" r="5" class="c30-dot"/>` : ''}
     ${pts.map((p, i) => `<rect x="${(p[0] - (W - 2 * P) / (n - 1) / 2).toFixed(1)}" y="0" width="${((W - 2 * P) / (n - 1)).toFixed(1)}" height="${H}" fill="transparent"><title>${lbl(days[i])}: ${vals[i]} dk</title></rect>`).join('')}
   </svg>
   <div class="c30-axis"><span>${lbl(days[0])}</span><span>${avg ? 'okuduğun günlerde ortalama ' + avg + ' dk' : ''}</span><span>bugün</span></div>`;
