@@ -1453,6 +1453,7 @@ return `<div class="grid3">
 // Takip: kişiye özel okuma alışkanlığı, zamanlayıcı oturumlarından hesaplanır
 const HEAT_WEEKS = 18;
 const WEEKDAYS2 = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const WEEKDAYS_LONG2 = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const DAYPARTS2 = [['Sabah', 5, 12], ['Öğleden sonra', 12, 17], ['Akşam', 17, 22], ['Gece', 22, 29]];
 const dk2 = secs => Math.round(secs / 60) + ' dk';
 function barsList2(rows) {
@@ -1502,8 +1503,8 @@ const thisM = monthKey(today), prevM = monthKey(new Date(today.getFullYear(), to
 const monthSum = key => Object.entries(byDay).filter(([k]) => k.startsWith(key)).reduce((a, [, v]) => a + v, 0);
 const nowM = monthSum(thisM), lastM = monthSum(prevM);
 const topPart = parts.slice().sort((a, b) => b[1] - a[1])[0];
-const topDay = week.slice().sort((a, b) => b[1] - a[1])[0];
-const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay[0])}</b> günleri okuyorsun.` : 'Zamanlayıcıyla okudukça alışkanlıkların burada belirecek.';
+const topDay = WEEKDAYS_LONG2[week.indexOf(week.slice().sort((a, b) => b[1] - a[1])[0])];
+const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay)}</b> günleri okuyorsun.` : 'Zamanlayıcıyla okudukça alışkanlıkların burada belirecek.';
 return `
 <div class="page-head"><div><p class="label">Takip</p><h1>Okuma alışkanlığım</h1></div></div>
 <p class="muted">${insight}</p>
@@ -1520,7 +1521,7 @@ return `
 <div class="grid3">
 <section class="card"><h3>Günün saatleri</h3>${barsList2(parts)}</section>
 <section class="card"><h3>Haftanın günleri</h3>${barsList2(week)}</section>
-<section class="card"><h3>Bu ay</h3><p class="big">${Math.round(nowM / 60)}<small> dk</small></p><p class="small muted">Geçen ay ${dk2(lastM)}${lastM ? ` · ${nowM >= lastM ? '+' : ''}${Math.round((nowM - lastM) / lastM * 100)}%` : ''}</p></section>
+<section class="card"><h3>Bu ay</h3><p class="big">${Math.round(nowM / 60)}<small> dk</small></p><p class="small muted">Geçen ay ${dk2(lastM)}${lastM ? ` · ${nowM >= lastM ? '+' : '-'}%${Math.abs(Math.round((nowM - lastM) / lastM * 100))}` : ''}</p></section>
 </div>
 <section class="card"><h3>Kitaplara göre</h3>${books.length ? barsList2(books) : '<p class="muted small">Henüz oturum yok.</p>'}</section>`;
 }
