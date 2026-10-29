@@ -686,3 +686,60 @@ h3, .card > h3 { font-family: var(--font-body); font-weight: 600; letter-spacing
 .tile, .card { border-color: rgba(226, 219, 209, 0.9); }
 .mq-item:nth-child(3n) { background: #2e4a3f; }
 .timeline .av { box-shadow: 0 0 0 4px var(--bg), 0 0 0 5px var(--line); }
+/* ================= Seviye 4: el yapımı katman (Daria Stolyarova / Tilda "handcrafted" esintisi) ================= */
+:root { --font-hand: "Caveat", "Segoe Print", cursive; --ink-blue: #2c3f9a; --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M2 8 C18 3 30 10 46 6 S78 2 94 6 S112 9 118 5' fill='none' stroke='%23e0592f' stroke-width='2.6' stroke-linecap='round'/%3E%3Cpath d='M10 10 C34 7 62 9 104 8' fill='none' stroke='%23e0592f' stroke-width='1.4' stroke-linecap='round' opacity='.6'/%3E%3C/svg%3E"); }
+/* El yazısıyla kenar notları: üyelerin notları mavi mürekkepte */
+.hand { font-family: var(--font-hand); font-weight: 500; color: var(--ink-blue); letter-spacing: 0; }
+p.hand, .ft.hand { font-size: 23px; line-height: 1.2; }
+.note .nt.hand { padding: 2px 0 2px 14px; border-left: 2px dashed rgba(44, 63, 154, 0.25); }
+/* Mürekkep karalaması alt çizgiler: menüde seçili sayfa, sayfa ve bölüm başlıkları */
+.snav button.on span { background: var(--scribble) 0 100% / 100% 8px no-repeat; padding-bottom: 5px; }
+.snav button.on { background: transparent; color: var(--ink); }
+.snav button:hover { background: var(--sunk); }
+.page-head h1 { background: var(--scribble) 0 100% / min(240px, 70%) 14px no-repeat; padding-bottom: 14px; }
+.sec-title { position: relative; padding-bottom: 8px; }
+.sec-title::after { content: ""; position: absolute; left: 0; bottom: -4px; width: 120px; height: 10px; background: var(--scribble) 0 0 / 100% 100% no-repeat; opacity: 0.9; }
+/* Kolaj: bitirdiğimiz kitaplar bantla tutturulmuş polaroidler */
+.collage { display: flex; flex-wrap: wrap; gap: 34px 28px; padding: 22px 6px 10px; }
+.polaroid { position: relative; width: 168px; padding: 10px 10px 14px; background: #ffffff; border: 0; border-radius: 3px; cursor: pointer; font: inherit; color: var(--ink); text-align: center; box-shadow: 0 2px 4px rgba(20, 16, 12, 0.08), 0 18px 30px -18px rgba(20, 16, 12, 0.45); transform: rotate(var(--rot, 0deg)); transition: transform 0.4s var(--spring), box-shadow 0.4s; }
+.polaroid:hover { transform: rotate(0deg) translateY(-8px) scale(1.04); z-index: 2; box-shadow: 0 4px 8px rgba(20, 16, 12, 0.1), 0 30px 44px -20px rgba(20, 16, 12, 0.5); }
+.polaroid::before { content: ""; position: absolute; top: -13px; left: 50%; width: 78px; height: 26px; transform: translateX(-50%) rotate(calc(var(--rot, 0deg) * -2.5)); background: var(--tape); opacity: 0.88; clip-path: polygon(3% 8%, 97% 0, 100% 92%, 0 100%); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.pol-img { display: block; }
+.pol-img .cover { box-shadow: none; border-radius: 1px; }
+.pol-cap { display: block; margin-top: 10px; font-family: var(--font-hand); font-size: 22px; line-height: 1.05; color: var(--ink); }
+.pol-stars { display: block; margin-top: 4px; }
+.pol-stars .stars { font-size: 13px; }
+.polaroid.rv { transform: translateY(22px) rotate(var(--rot, 0deg)); }
+.polaroid.rv.in { transform: rotate(var(--rot, 0deg)); }
+.polaroid.rv.in:hover { transform: rotate(0deg) translateY(-8px) scale(1.04); }
+@media (max-width: 460px) { .polaroid { width: 140px; } .collage { gap: 28px 18px; justify-content: center; } }
+/* Toplantı fotoğraf duvarı */
+.album { display: grid; gap: 18px; margin-top: 8px; }
+.album .rail-head { align-items: center; flex-wrap: wrap; }
+.masonry { columns: 3 220px; column-gap: 22px; }
+.film { break-inside: avoid; margin: 0 0 26px; padding: 10px 10px 8px; background: #ffffff; border-radius: 3px; box-shadow: 0 2px 4px rgba(20, 16, 12, 0.08), 0 18px 30px -20px rgba(20, 16, 12, 0.45); transform: rotate(var(--rot, 0deg)); }
+.film.rv { transform: translateY(22px) rotate(var(--rot, 0deg)); }
+.film.rv.in { transform: rotate(var(--rot, 0deg)); }
+.film-img { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.film-img img { display: block; width: 100%; height: auto; border-radius: 1px; filter: saturate(0.92) contrast(1.03); }
+.film figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; }
+.film figcaption .hand { font-size: 20px; }
+/* Ana sayfa film şeridi */
+.filmstrip { position: relative; overflow-x: auto; scrollbar-width: none; border-radius: 6px; background: #121110; padding: 26px 16px; background-image: radial-gradient(circle, #f2eee8 0 3.5px, transparent 4px), radial-gradient(circle, #f2eee8 0 3.5px, transparent 4px); background-size: 22px 22px, 22px 22px; background-position: 6px 4px, 6px calc(100% - 4px); background-repeat: repeat-x; background-attachment: local; }
+.filmstrip::-webkit-scrollbar { display: none; }
+.fs-track { display: flex; gap: 12px; width: max-content; }
+.fs-item { position: relative; flex: none; height: 170px; padding: 0; border: 0; background: #000; cursor: zoom-in; overflow: hidden; border-radius: 2px; }
+.fs-item img { height: 100%; width: auto; display: block; filter: sepia(0.12) saturate(0.95); transition: transform 0.5s var(--ease-out); }
+.fs-item:hover img { transform: scale(1.06); }
+.fs-item .hand { position: absolute; left: 8px; bottom: 4px; font-size: 19px; color: #fbf6ee; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
+@media (max-width: 460px) { .fs-item { height: 130px; } }
+/* Büyük fotoğraf görünümü */
+.lightbox { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgba(12, 10, 8, 0.86); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity 0.3s; cursor: zoom-out; }
+.lightbox.on { opacity: 1; pointer-events: auto; }
+.lightbox figure { margin: 0; padding: 12px 12px 10px; background: #ffffff; border-radius: 3px; max-width: min(92vw, 1000px); transform: scale(0.94) rotate(-1deg); transition: transform 0.4s var(--spring); }
+.lightbox.on figure { transform: none; }
+.lightbox img { display: block; max-width: 100%; max-height: 78vh; }
+.lightbox figcaption { padding-top: 8px; font-size: 22px; text-align: center; }
+/* İmleç balonu */
+.cbubble { position: fixed; left: 0; top: 0; z-index: 70; width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fbf6ee; font: 600 13px var(--font-body); pointer-events: none; transform: translate(-50%, -50%) scale(0); transition: transform 0.25s var(--spring); }
+.cbubble.on { transform: translate(12px, 12px) scale(1); }
