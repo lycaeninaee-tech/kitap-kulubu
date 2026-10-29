@@ -19,7 +19,7 @@
 - `style.css`: tema değişkenleri `:root` içinde. Dosyanın sonunda lofi dokunuşları, zamanlayıcı ve profil grafiği stilleri var.
 - `config.js`: Firebase ayarları, üyeler, izleyiciler, isteğe bağlı Google Books anahtarı.
 - `kitap-bilgi.json`: kitap sayfasındaki Bilgi ve Yazar sekmeleri için elle yazılmış bilgiler. Anahtar, Firestore'daki kitap id'si.
-- `sw.js`: ağ öncelikli önbellek. Kabuk dosyaları değişince `CACHE` sürümünü artır (şu an `kulup-v3`), yoksa telefonlar eski sürümde kalabilir.
+- `sw.js`: ağ öncelikli önbellek. Kabuk dosyaları değişince `CACHE` sürümünü artır (şu an `kulup-v4`), yoksa telefonlar eski sürümde kalabilir.
 - `manifest.webmanifest`, `icon.svg`: PWA olarak ana ekrana eklenebilir.
 - `tasima.json`: eski Claude artifact'ından taşınan veri. Bir kez içe aktarıldı, artık gerekmiyor.
 
@@ -32,7 +32,11 @@
 
 ## Sayfalar (`VIEWS`)
 
-Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Zamanlayıcı (`viewTimer2`).
+Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Zamanlayıcı (`viewTimer2`), Takip (`viewHabit`).
+
+- Takip: kişiye özel alışkanlık sayfası. `sessions` verisinden son 18 haftanın ısı haritası, seriler, günün saatleri, haftanın günleri, aylık karşılaştırma ve kitap başına süre hesaplanır.
+- Gün anahtarları yerel saate göredir (`dayKey2`, `sessDay2`), UTC değil.
+- Ses notları: kitabın "Okumadan önce / okurken" sekmesinde, en çok 30 sn. `MediaRecorder` ile 24 kbit/sn kaydedilir ve not belgesine `audio` (data URL) + `dur` alanlarıyla `kind: 'own'` olarak eklenir.
 
 - Zamanlayıcı modları: Serbest, Pomodoro 25/5, Derin odak 50/10, Kısa tur 15/3, Özel döngü, Geri sayım (`MODES2`). Çalışan zamanlayıcı `localStorage` `kulup-timer2` içinde tutulur.
 - Müzik kartı zamanlayıcının yanında. Spotify/YouTube embed'i kesilmesin diye zamanlayıcı sayfasında `render()` yerine `refreshTimer2()` yalnızca zamanlayıcı kartını yeniler.
@@ -46,12 +50,8 @@ Sıcak lofi teması: krem zemin `#f6efe6`, terrakota vurgu `#c2683f`, adaçayı 
 
 - Değişiklikler ayrı bir dalda yapılır ve PR açılır. Kullanıcı açıkça onay vermeden `main`'e birleştirilmez.
 - Birleştirmeden sonra Pages birkaç dakika içinde yayınlar. Kontrol için önbelleği aşan bir sorgu ekle (`app.js?v=...`). `raw.githubusercontent.com/.../main/...` eski içerik gösterebilir; commit SHA'lı adres kullan.
-- Kodda iki kuşak var: eski `viewProfile`, `startTimer`, `stopTimer` ve `TIMER` artık kullanılmıyor (silinebilir). Geçerli olanlar `...2` ekli fonksiyonlar.
+- Profil, zamanlayıcı ve takip fonksiyonlarının adı `...2` ile biter (eski sürümleri silindi).
 
 ## Bekleyen fikirler
 
-- Ses notları (en çok 30 sn, Firestore'da base64; Storage kullanılmayacak).
-- Kişiye özel okuma alışkanlığı takibi sayfası (`sessions` verisinden).
-- Telefonda giriş kartındaki metin çok dar görünüyor; düzeltilmeli.
-- Kullanılmayan eski zamanlayıcı ve profil kodunu temizlemek.
 - Narsis ve Goldmund'un sayfa sayısı (321) şüpheli; kullanıcı kendisi düzeltecek.

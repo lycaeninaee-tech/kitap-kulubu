@@ -307,6 +307,11 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.015em; }
 .hero { border: 0; box-shadow: var(--shadow); background: linear-gradient(135deg, #fffaf3 0%, #f8eadb 100%); }
 .hero::after { content: ""; position: absolute; top: 0; right: 30px; width: 24px; height: 60px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%); }
 .hero-title { font-weight: 600; }
+/* Giriş kartında kapak yok: tek sütun, telefonda metin 110px'lik kapak sütununa sıkışmasın */
+.hero.login { grid-template-columns: minmax(0, 1fr); max-width: 640px; margin: 8vh auto 0; padding: 40px 36px; text-align: left; }
+.hero.login .hb-text, .hero.login .actions, .hero.login > .hero-body > p { grid-column: 1 / -1; }
+.hero.login .hero-title { font-size: 46px; }
+@media (max-width: 640px) { .hero.login { margin-top: 4vh; padding: 28px 22px; } .hero.login .hero-title { font-size: 34px; } }
 .av { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--c); }
 input, select, textarea { background: var(--surface); border-radius: 12px; }
 .btn { border-radius: 999px; padding: 10px 20px; letter-spacing: 0.01em; box-shadow: 0 6px 16px -10px rgba(165, 83, 47, 0.8); }
@@ -357,3 +362,29 @@ input, select, textarea { background: var(--surface); border-radius: 12px; }
 .c7 { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
 .c7-bar { width: 100%; max-width: 28px; background: linear-gradient(180deg, #d98a5f, var(--accent)); border-radius: 8px 8px 4px 4px; }
 .c7 span { font-size: 11.5px; color: var(--muted); }
+/* Takip: ısı haritası ve dağılım çubukları */
+.heat-wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; }
+.heat-days { display: grid; grid-template-rows: repeat(7, 1fr); gap: 4px; font-size: 10.5px; color: var(--muted); }
+.heat-days span { display: flex; align-items: center; }
+.heat { display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; }
+.heat i, .heat-legend i { display: block; aspect-ratio: 1; border-radius: 4px; background: var(--sunk); }
+.heat i.f { visibility: hidden; }
+.heat i.l1, .heat-legend i.l1 { background: #f2d6c3; }
+.heat i.l2, .heat-legend i.l2 { background: #e2a985; }
+.heat i.l3, .heat-legend i.l3 { background: #cf7c50; }
+.heat i.l4, .heat-legend i.l4 { background: var(--accent-deep); }
+.heat-legend { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 12px; font-size: 11.5px; color: var(--muted); }
+.heat-legend i { width: 12px; }
+.hbars li { grid-template-columns: minmax(0, 8em) minmax(0, 1fr) 4.4em; }
+.hbars .bar span { background: var(--accent); }
+/* Ses notları */
+.voice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn.rec { background: #b5402a; border-color: #b5402a; animation: recpulse 1.4s ease-in-out infinite; }
+@keyframes recpulse { 50% { box-shadow: 0 0 0 6px rgba(181, 64, 42, 0.18); } }
+.vnote { display: flex; align-items: center; gap: 10px; color: var(--accent); }
+.vnote audio { height: 36px; flex: 1; min-width: 0; max-width: 340px; }
+@media (max-width: 900px) {
+.tabbar { grid-template-columns: repeat(6, 1fr); padding-left: 4px; padding-right: 4px; }
+.tabbar button { font-size: 10.5px; padding: 6px 0; }
+.tabbar button svg { width: 21px; height: 21px; }
+}
