@@ -888,3 +888,5 @@ body.focus-mode #music-card { background: rgba(255, 254, 251, 0.8); }
 /* Kutularda hareketli eğim yok: sakin, basılı sayfa hissi */
 .tilt, .rail-cover { transform: none !important; }
 .rail-item:hover .rail-cover { transform: translateY(-6px) !important; }
+.mega { line-height: 1; }
+.mega small { margin-top: 10px; }
