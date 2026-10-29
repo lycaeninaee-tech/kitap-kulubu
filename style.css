@@ -381,13 +381,14 @@ body.focus-mode .focus-exit { display: inline-flex; position: fixed; top: 16px; 
 .tset:has(input[value="ozel"]:checked) .f-ozel { display: grid; }
 .tset:has(input[value="sayac"]:checked) .f-sayac { display: grid; }
 #music-card iframe { border-radius: 14px; display: block; }
-/* Profil: haftalık hedef çubuğu ve 7 günlük grafik */
 .bar.goal { height: 8px; margin: 12px 0 14px; background: var(--sunk); }
 .bar.goal span { background: var(--accent); border-radius: 999px; }
-.chart7 { display: flex; align-items: flex-end; gap: 8px; height: 130px; }
-.c7 { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
-.c7-bar { width: 100%; max-width: 28px; background: linear-gradient(180deg, #d98a5f, var(--accent)); border-radius: 8px 8px 4px 4px; }
-.c7 span { font-size: 11.5px; color: var(--muted); }
+/* Profil: kişisel üst kart */
+.prof-hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 20px; align-items: start; }
+.prof-hero h2 { font-size: 28px; }
+.prof-hero .av.lg { width: 72px; height: 72px; font-size: 30px; }
+@media (max-width: 640px) { .prof-hero { grid-template-columns: auto minmax(0, 1fr); } .prof-hero > .btn { grid-column: 1 / -1; justify-self: start; } }
+.tabbar button span { line-height: 1.15; text-align: center; }
 /* Takip: ısı haritası ve dağılım çubukları */
 .heat-wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; }
 .heat-days { display: grid; grid-template-rows: repeat(7, 1fr); gap: 4px; font-size: 10.5px; color: var(--muted); }

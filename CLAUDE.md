@@ -19,7 +19,7 @@
 - `style.css`: tema değişkenleri `:root` içinde. Dosyanın sonunda lofi dokunuşları, zamanlayıcı ve profil grafiği stilleri var.
 - `config.js`: Firebase ayarları, üyeler, izleyiciler, isteğe bağlı Google Books anahtarı.
 - `kitap-bilgi.json`: kitap sayfasındaki Bilgi ve Yazar sekmeleri için elle yazılmış bilgiler. Anahtar, Firestore'daki kitap id'si.
-- `sw.js`: ağ öncelikli önbellek. Kabuk dosyaları değişince `CACHE` sürümünü artır (şu an `kulup-v6`), yoksa telefonlar eski sürümde kalabilir.
+- `sw.js`: ağ öncelikli önbellek. Kabuk dosyaları değişince `CACHE` sürümünü artır (şu an `kulup-v7`), yoksa telefonlar eski sürümde kalabilir.
 - `manifest.webmanifest`, `icon.svg`: PWA olarak ana ekrana eklenebilir.
 - `tasima.json`: eski Claude artifact'ından taşınan veri. Bir kez içe aktarıldı, artık gerekmiyor.
 
@@ -28,13 +28,14 @@
 - `books` (+ alt koleksiyon `books/{id}/notes`): kitaplar. Durum değerleri: `sirada`, `okunuyor`, `tamamlandi`, `birakildi`.
 - `suggestions`: kitap önerileri ve oylar. Eklenince `lookupSugg` kapak (`coverUrl`), `info` ve tanıtım (`desc`) bulur. "Kitaplığa ekle" (`adopt`) bunları "Sırada" durumundaki yeni kitaba taşır.
 - `sessions`: okuma oturumları `{ by: üye-slug, bookId, seconds, at: ISO tarih }`.
-- `profiles/{üye-slug}`: `{ name, music, goalMin }` (müzik bağlantısı ve haftalık dakika hedefi).
+- `profiles/{üye-slug}`: `{ name, music, goalMin, bio, genres, favBook, favAuthor, quote, yearGoal }` (müzik, haftalık dakika hedefi ve kişisel profil bilgileri).
 
 ## Sayfalar (`VIEWS`)
 
-Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Zamanlayıcı (`viewTimer2`), Takip (`viewHabit`).
+Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Okuma köşesi (`viewTimer2`, adres `#zamanlayici`), Takip (`viewHabit`).
 
-- Takip: kişiye özel alışkanlık sayfası. `sessions` verisinden son 18 haftanın ısı haritası, seriler, günün saatleri, haftanın günleri, aylık karşılaştırma ve kitap başına süre hesaplanır.
+- Profilim: kişisel sayfa. Hakkımda, sevilen türler, favoriler, yıllık kitap hedefi, şu an okunanlar, seçilen ve puanlanan kitaplar. Üyeler birbirinin profilini görür (`S.profileOf`), sadece kendininkini düzenler (`profileForm2`). Sayısal istatistik burada yok, Takip'te.
+- Takip: kişiye özel alışkanlık sayfası. `sessions` verisinden aylık özet, seriler, son 18 haftanın ısı haritası, günün saatleri, haftanın günleri, haftalık dakika hedefi (`weekGoalCard2`) ve kitap başına süre hesaplanır.
 - Sayfa geçişleri `go()` ile `history.pushState` kullanır; tarayıcının geri tuşu `popstate` ile önceki sayfaya döner.
 - Kitap sayfasındaki "Kitabı düzenle" formu (`bookEditForm`, `data-form="bookedit"`) ad, yazar, seçen, ay, durum ve künyeyi tek seferde günceller.
 - Takip sayfasının başında aylık özet kartı (`recapCard2`) var; "Paylaş" (`shareRecap`) özeti 1080x1350 PNG olarak çizip paylaşır ya da indirir.
