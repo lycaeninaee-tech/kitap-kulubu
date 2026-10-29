@@ -1762,7 +1762,7 @@ const ILLUS = {
 <path d="M178 131 L178 54 M168 132 C173 128 183 128 188 132"/>
 <path d="M162 54 L194 54 L185 32 L171 32Z" fill="#f6e0ae"/>
 <path d="M164 64 L156 74 M178 66 L178 78 M192 64 L200 74" stroke-dasharray="2 4"/>
-<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#e0592f"/>
+<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#2b4bff"/>
 <path d="M18 123 L42 123 L42 115 L18 115Z" fill="#7fa38a"/>
 <path d="M15 115 L39 115 L39 107 L15 107Z" fill="#f8cdb7"/>
 <path d="M32 107 C30 100 36 96 40 99"/>
@@ -1776,12 +1776,12 @@ const ILLUS = {
 <path d="M196 90 C206 90 206 104 194 106"/>
 <path d="M142 122 C158 127 188 127 204 122"/>
 <path d="M164 72 C158 64 170 58 164 48 M178 72 C172 64 184 58 178 48"/>
-<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#e0592f"/>
+<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#2b4bff"/>
 </svg>`,
   // Raf, kitaplar ve saksı
   shelf: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M20 120 C80 118 140 121 200 119 M24 120 L24 132 M196 119 L196 131"/>
-<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#e0592f"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#f8cdb7"/>
+<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#2b4bff"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#f8cdb7"/>
 <path d="M66 119 L66 60 L80 60 L80 119Z" fill="#7fa38a"/><path d="M84 119 L96 72 L108 75 L97 120Z" fill="#f6e0ae"/>
 <path d="M40 76 L46 76 M70 70 L76 70 M70 108 L76 108"/>
 <path d="M140 119 L136 96 L164 96 L160 119Z" fill="#f1a47f"/>
@@ -1852,27 +1852,27 @@ async function shareRecap() {
   c.width = 1080; c.height = 1350;
   const g = c.getContext('2d');
   try { await document.fonts.ready; } catch (e) {}
-  g.fillStyle = '#f2eee8'; g.fillRect(0, 0, 1080, 1350);
-  g.fillStyle = '#fbf9f6';
+  g.fillStyle = '#f0eee9'; g.fillRect(0, 0, 1080, 1350);
+  g.fillStyle = '#f8f7f3';
   g.beginPath(); g.roundRect(60, 60, 960, 1230, 48); g.fill();
   const img = new Image();
   img.src = 'data:image/svg+xml,' + encodeURIComponent(ILLUS.cozy);
   await new Promise(r => { img.onload = r; img.onerror = r; });
   try { g.drawImage(img, 290, 120, 500, 341); } catch (e) {}
   g.textAlign = 'center';
-  g.fillStyle = '#e0592f'; g.font = '600 34px Geist, Inter, sans-serif';
+  g.fillStyle = '#2b4bff'; g.font = '600 34px "Instrument Sans", Geist, sans-serif';
   g.fillText('KİTAP KULÜBÜ · ' + d.label.toLocaleUpperCase('tr-TR'), 540, 530);
-  g.fillStyle = '#15120f'; g.font = '400 136px "Instrument Serif", Georgia, serif';
+  g.fillStyle = '#1b1b1f'; g.font = '500 136px "Bodoni Moda", Georgia, serif';
   g.fillText(hoursText(d.total), 540, 680);
-  g.fillStyle = '#78706a'; g.font = '400 40px Geist, Inter, sans-serif';
+  g.fillStyle = '#6b6b73'; g.font = '400 40px "Instrument Sans", Geist, sans-serif';
   g.fillText(S.me + (S.recapBack ? ' geçen ay okudu' : ' bu ay okudu'), 540, 750);
   const facts = [['Okunan gün', d.days], ['Oturum', d.sessions], ['En uzun', dk2(d.longest)], ['En sevdiği gün', d.topDay || '–']];
   facts.forEach(([k, v], i) => {
     const x = 300 + (i % 2) * 480, y = 880 + Math.floor(i / 2) * 150;
-    g.fillStyle = '#78706a'; g.font = '500 30px Geist, Inter, sans-serif'; g.fillText(k, x, y);
-    g.fillStyle = '#15120f'; g.font = '400 64px "Instrument Serif", Georgia, serif'; g.fillText(String(v), x, y + 64);
+    g.fillStyle = '#6b6b73'; g.font = '500 30px "Instrument Sans", Geist, sans-serif'; g.fillText(k, x, y);
+    g.fillStyle = '#1b1b1f'; g.font = '500 64px "Bodoni Moda", Georgia, serif'; g.fillText(String(v), x, y + 64);
   });
-  if (d.topBook) { g.fillStyle = '#e0592f'; g.font = 'italic 500 40px "Instrument Serif", Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
+  if (d.topBook) { g.fillStyle = '#2b4bff'; g.font = 'italic 500 40px "Bodoni Moda", Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   if (!blob) return toast('Resim hazırlanamadı.');
   const file = new File([blob], `kitap-kulubu-${d.key}.png`, { type: 'image/png' });
@@ -1909,12 +1909,38 @@ function pageChange(run) {
   if (!document.startViewTransition || reduceMotion() || document.hidden) return run();
   try { document.startViewTransition(run).updateCallbackDone.catch(err => { console.error(err); run(); }); } catch (err) { run(); }
 }
-const REVEAL_SEL = '.stage-text > *, .spot-body > *, .stage-cover, .tile, .card, .rail-section, .shelf-row, .numbers > div, .timeline li, .stats .stat, .marquee, .page-head, .rozet, .chart30, .polaroid, .film, .filmstrip';
+const REVEAL_SEL = '.stage-text > *, .spot-body > *, .stage-cover, .tile, .card, .rail-section, .shelf-row, .numbers > div, .timeline li, .stats .stat, .marquee, .page-head, .rozet, .chart30, .polaroid, .film, .filmstrip, .kin';
+// Kinetik başlıklar: her kelime kendi maskesinde; CSS kelimeleri sırayla aşağıdan kaydırır (<em> gibi iç etiketler korunur)
+const KIN_SEL = '.display, .spot-title, .hero-title, .page-head h1';
+function splitWords(h) {
+  if (h.classList.contains('kin')) return;
+  let w = 0;
+  const walk = node => [...node.childNodes].forEach(n => {
+    if (n.nodeType === 1) return walk(n);
+    if (n.nodeType !== 3 || !n.textContent.trim()) return;
+    const frag = document.createDocumentFragment();
+    n.textContent.split(/(\s+)/).forEach(part => {
+      if (!part) return;
+      if (!part.trim()) { frag.appendChild(document.createTextNode(part)); return; }
+      const o = document.createElement('span');
+      o.className = 'kw';
+      const i = document.createElement('span');
+      i.textContent = part;
+      i.style.setProperty('--w', w++);
+      o.appendChild(i);
+      frag.appendChild(o);
+    });
+    n.replaceWith(frag);
+  });
+  walk(h);
+  h.classList.add('kin');
+}
 function enhance(root) {
   const first = !FIRST_ANIM_DONE && S.loaded;
   if (!(ANIM_NEXT || first) || reduceMotion()) { ANIM_NEXT = false; return; }
   ANIM_NEXT = false;
   if (first) FIRST_ANIM_DONE = true;
+  root.querySelectorAll(KIN_SEL).forEach(splitWords);
   const counts = new Map();
   const els = [...root.querySelectorAll(REVEAL_SEL)];
   els.forEach(el => {
