@@ -381,6 +381,7 @@ function viewLogin() {
   <section class="hero login">
     <div class="glow ph" style="--h:330"></div>
     <div class="hero-body" style="grid-column:1/-1">
+      ${illus('cozy', 'login-art')}
       <div class="hb-text">
         <p class="label">Aslı · Ebrar · Şebnem</p>
         <h2 class="hero-title">Kitap Kulübü</h2>
@@ -936,6 +937,7 @@ function render() {
 // Her sayfa geçişi tarayıcı geçmişine yazılır; böylece geri tuşu siteden çıkmak yerine önceki sayfaya döner.
 function go(view, extra = {}) {
   Object.assign(S, { view, editBook: null }, extra);
+  if (view !== 'zamanlayici' && document.body.classList.contains('focus-mode')) setFocusMode(false);
   const h = '#' + (view === 'kitap' ? 'kitap-' + S.bookId : view);
   try {
     if (location.hash !== h) history.pushState(null, '', h);
@@ -950,7 +952,13 @@ function readHash() {
   else if (!h) S.view = 'buay';
 }
 readHash();
-window.addEventListener('popstate', () => { readHash(); S.editBook = null; render(); window.scrollTo(0, 0); });
+window.addEventListener('popstate', () => {
+  readHash();
+  S.editBook = null;
+  if (S.view !== 'zamanlayici') document.body.classList.remove('focus-mode');
+  render();
+  window.scrollTo(0, 0);
+});
 
 /* ---------- data ---------- */
 function ensureNotes(id) {
@@ -1080,6 +1088,9 @@ document.addEventListener('click', e => {
       break;
     }
     case 'edit-cancel': S.editBook = null; render(); break;
+    case 'recapm': S.recapBack = Number(el.dataset.v) || 0; render(); break;
+    case 'recapshare': shareRecap().catch(fail); break;
+    case 'focusmode': setFocusMode(!document.body.classList.contains('focus-mode')); break;
     case 'vstart': startVoice(); break;
     case 'vstop': stopVoice(); break;
     case 'find': findCovers(id); break;
@@ -1508,6 +1519,7 @@ return `<h3>Oturum</h3>
 const opts = S.books.filter(b => b.status !== 'birakildi').map(b => `<option value="${esc(b.id)}">${esc(b.title)}</option>`).join('');
 const modes = MODES2.map(([v, t, d]) => `<label class="mode"><input type="radio" name="tmode" value="${v}"${TPREF.m === v ? ' checked' : ''}><b>${t}</b><span>${d}</span></label>`).join('');
 return `<h3>Oturum</h3>
+${illus('tea', 'timer-art')}
 <div class="tset">
 <label>Kitap<select id="timer-book">${opts}</select></label>
 <div class="modes" role="radiogroup" aria-label="Zamanlayıcı türü">${modes}</div>
@@ -1522,12 +1534,13 @@ ensureProfiles();
 if (!S.me) return `<div class="page-head"><h1>Zamanlayıcı</h1></div><div class="card empty"><p class="muted">Önce kim olduğunu seç.</p></div>`;
 const prof = (S.profiles || {})[slug(S.me)] || {};
 return `
-<div class="page-head"><div><p class="label">Zamanlayıcı</p><h1>Okuma köşesi</h1></div></div>
+<div class="page-head"><div><p class="label">Zamanlayıcı</p><h1>Okuma köşesi</h1></div><button type="button" class="btn ghost" data-act="focusmode">Odak modu</button></div>
+<button type="button" class="focus-exit btn ghost sm" data-act="focusmode">Odak modundan çık</button>
 <div class="cols even timer-page">
 <section class="card" id="timer-card">${timerBody2()}</section>
 <section class="card" id="music-card">${musicCard2(prof.music)}</section>
 </div>
-<section class="card"><h3>Son oturumlar</h3><div id="timer-sessions">${sessionsList2(mySessions2(), 10)}</div></section>`;
+<section class="card sessions-card"><h3>Son oturumlar</h3><div id="timer-sessions">${sessionsList2(mySessions2(), 10)}</div></section>`;
 }
 function saveGoal() {
 if (!S.me) return toast('Önce kim olduğunu seç.');
@@ -1611,6 +1624,7 @@ const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr
 return `
 <div class="page-head"><div><p class="label">Takip</p><h1>Okuma alışkanlığım</h1></div></div>
 <p class="muted">${insight}</p>
+${recapCard2(mine)}
 <div class="stats">
 <div class="stat"><span>Şu anki seri</span><b>${streakDays2(mine)} gün</b></div>
 <div class="stat"><span>En uzun seri</span><b>${longestStreak2(Object.keys(byDay))} gün</b></div>
@@ -1628,3 +1642,156 @@ return `
 </div>
 <section class="card"><h3>Kitaplara göre</h3>${books.length ? barsList2(books) : '<p class="muted small">Henüz oturum yok.</p>'}</section>`;
 }
+
+// El çizimi illüstrasyonlar: mürekkep çizgisi + birkaç sıcak renk lekesi (Margins esintisi)
+const INK = '#3b2f27';
+const ILLUS = {
+  // Okuma koltuğu, kıvrılmış kedi, lamba ve kitap yığını
+  cozy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M8 136 C60 133 150 138 212 134"/>
+<path d="M58 118 C53 86 58 60 88 57 C116 55 126 64 126 92 L126 118" fill="#f5e1d3"/>
+<path d="M48 104 C66 99 118 99 136 104 C138 113 133 120 126 120 L58 120 C51 120 46 113 48 104Z" fill="#f2d2bd"/>
+<path d="M45 94 C37 94 37 108 44 112 L49 118 M139 94 C147 94 147 108 140 112 L135 118"/>
+<path d="M56 120 L53 131 M128 120 L131 131"/>
+<path d="M74 102 C73 89 100 86 106 99 C100 103 80 104 74 102Z" fill="#e8b48f"/>
+<path d="M98 92 L101 85 L104 93 M92 91 L94 85 L97 91"/>
+<path d="M74 101 C66 100 65 93 72 92"/>
+<path d="M178 131 L178 54 M168 132 C173 128 183 128 188 132"/>
+<path d="M162 54 L194 54 L185 32 L171 32Z" fill="#f6e3b8"/>
+<path d="M164 64 L156 74 M178 66 L178 78 M192 64 L200 74" stroke-dasharray="2 4"/>
+<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#c2683f"/>
+<path d="M18 123 L42 123 L42 115 L18 115Z" fill="#7f9a7a"/>
+<path d="M15 115 L39 115 L39 107 L15 107Z" fill="#f2d2bd"/>
+<path d="M32 107 C30 100 36 96 40 99"/>
+</svg>`,
+  // Buharı tüten çay fincanı ve açık kitap
+  tea: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M10 134 C70 131 150 136 210 132"/>
+<path d="M28 126 C46 116 70 116 88 124 C106 116 130 116 148 126 L148 132 C130 124 106 124 88 132 C70 124 46 124 28 132Z" fill="#fffaf3"/>
+<path d="M88 124 L88 132 M40 122 C52 119 64 119 76 122 M100 122 C112 119 124 119 136 122"/>
+<path d="M150 82 L196 82 C196 108 186 118 173 118 C160 118 150 108 150 82Z" fill="#f5e1d3"/>
+<path d="M196 90 C206 90 206 104 194 106"/>
+<path d="M142 122 C158 127 188 127 204 122"/>
+<path d="M164 72 C158 64 170 58 164 48 M178 72 C172 64 184 58 178 48"/>
+<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#c2683f"/>
+</svg>`,
+  // Raf, kitaplar ve saksı
+  shelf: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M20 120 C80 118 140 121 200 119 M24 120 L24 132 M196 119 L196 131"/>
+<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#c2683f"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#f2d2bd"/>
+<path d="M66 119 L66 60 L80 60 L80 119Z" fill="#7f9a7a"/><path d="M84 119 L96 72 L108 75 L97 120Z" fill="#f6e3b8"/>
+<path d="M40 76 L46 76 M70 70 L76 70 M70 108 L76 108"/>
+<path d="M140 119 L136 96 L164 96 L160 119Z" fill="#e8b48f"/>
+<path d="M150 96 C146 80 132 76 128 64 M150 96 C152 78 164 74 170 62 M150 96 C150 84 148 72 150 58"/>
+<path d="M126 66 C122 60 130 56 132 62 M168 64 C172 58 178 62 174 66 M148 60 C146 54 154 52 152 58"/>
+</svg>`,
+};
+const illusURL = k => `url("data:image/svg+xml,${encodeURIComponent(ILLUS[k])}")`;
+document.documentElement.style.setProperty('--illus-cozy', illusURL('cozy'));
+document.documentElement.style.setProperty('--illus-tea', illusURL('tea'));
+document.documentElement.style.setProperty('--illus-shelf', illusURL('shelf'));
+const illus = (k, cls = '') => `<div class="illus ${cls}" aria-hidden="true">${ILLUS[k]}</div>`;
+
+// Aylık özet (Fable esintisi): seçili ayın okuma özeti, resim olarak paylaşılabilir
+function recapData2(mine, back) {
+  const now = new Date();
+  const m = new Date(now.getFullYear(), now.getMonth() - back, 1);
+  const key = m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0');
+  const list = mine.filter(s => sessDay2(s).startsWith(key));
+  const total = list.reduce((a, s) => a + (s.seconds || 0), 0);
+  const perBook = {};
+  list.forEach(s => { perBook[s.bookId] = (perBook[s.bookId] || 0) + (s.seconds || 0); });
+  const top = Object.entries(perBook).sort((a, b) => b[1] - a[1])[0];
+  const perDay = [0, 0, 0, 0, 0, 0, 0];
+  list.forEach(s => { perDay[(new Date(s.at).getDay() + 6) % 7] += s.seconds || 0; });
+  return {
+    key,
+    label: m.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
+    total,
+    days: new Set(list.map(sessDay2)).size,
+    sessions: list.length,
+    longest: Math.max(0, ...list.map(s => s.seconds || 0)),
+    topBook: top ? (bookById(top[0]) || {}).title || '' : '',
+    topDay: total ? WEEKDAYS_LONG2[perDay.indexOf(Math.max(...perDay))] : '',
+    finished: S.books.filter(b => b.status === 'tamamlandi' && b.month === key).map(b => b.title),
+  };
+}
+const hoursText = secs => secs >= 3600 ? (secs / 3600).toFixed(1).replace('.', ',') + ' saat' : Math.round(secs / 60) + ' dakika';
+function recapCard2(mine) {
+  const d = recapData2(mine, S.recapBack || 0);
+  const rows = [
+    ['Okunan gün', d.days + ' gün'],
+    ['Oturum', String(d.sessions)],
+    ['En uzun oturum', d.longest ? dk2(d.longest) : '–'],
+    ['En sevdiğin gün', d.topDay || '–'],
+  ];
+  return `<section class="card recap">
+    <div class="recap-head">
+      <div><p class="label">Aylık özet</p><h2>${esc(d.label)}</h2></div>
+      <div class="seg" role="group" aria-label="Ay seç"><button type="button" class="${S.recapBack ? '' : 'on'}" data-act="recapm" data-v="0">Bu ay</button><button type="button" class="${S.recapBack ? 'on' : ''}" data-act="recapm" data-v="1">Geçen ay</button></div>
+    </div>
+    <div class="recap-body">
+      ${illus('cozy', 'recap-art')}
+      <div class="recap-main">
+        <p class="recap-big">${d.total ? esc(hoursText(d.total)) : 'Henüz okuma yok'}</p>
+        <p class="muted">${d.total ? 'okudun' + (d.topBook ? `, en çok <b>${esc(d.topBook)}</b>` : '') : 'Zamanlayıcıyla okudukça burası dolacak.'}</p>
+        ${d.finished.length ? `<p class="small">Bitirilen: ${d.finished.map(esc).join(', ')}</p>` : ''}
+      </div>
+    </div>
+    <dl class="facts recap-facts">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+    <div class="actions"><button type="button" class="btn sm" data-act="recapshare"${d.total ? '' : ' disabled'}>Paylaş</button><span class="muted small">Resim olarak kaydet ya da gönder</span></div>
+  </section>`;
+}
+// Özeti 1080x1350 bir resme çizer; telefonda paylaşım menüsü, bilgisayarda indirme
+async function shareRecap() {
+  const d = recapData2(mySessions2(), S.recapBack || 0);
+  const c = document.createElement('canvas');
+  c.width = 1080; c.height = 1350;
+  const g = c.getContext('2d');
+  try { await document.fonts.ready; } catch (e) {}
+  g.fillStyle = '#f6efe6'; g.fillRect(0, 0, 1080, 1350);
+  g.fillStyle = '#fffaf3';
+  g.beginPath(); g.roundRect(60, 60, 960, 1230, 48); g.fill();
+  const img = new Image();
+  img.src = 'data:image/svg+xml,' + encodeURIComponent(ILLUS.cozy);
+  await new Promise(r => { img.onload = r; img.onerror = r; });
+  try { g.drawImage(img, 290, 120, 500, 341); } catch (e) {}
+  g.textAlign = 'center';
+  g.fillStyle = '#c2683f'; g.font = '600 34px Inter, sans-serif';
+  g.fillText('KİTAP KULÜBÜ · ' + d.label.toLocaleUpperCase('tr-TR'), 540, 530);
+  g.fillStyle = '#2e241d'; g.font = '600 120px Fraunces, Georgia, serif';
+  g.fillText(hoursText(d.total), 540, 680);
+  g.fillStyle = '#8a7a6d'; g.font = '400 40px Inter, sans-serif';
+  g.fillText(S.me + (S.recapBack ? ' geçen ay okudu' : ' bu ay okudu'), 540, 750);
+  const facts = [['Okunan gün', d.days], ['Oturum', d.sessions], ['En uzun', dk2(d.longest)], ['En sevdiği gün', d.topDay || '–']];
+  facts.forEach(([k, v], i) => {
+    const x = 300 + (i % 2) * 480, y = 880 + Math.floor(i / 2) * 150;
+    g.fillStyle = '#8a7a6d'; g.font = '500 30px Inter, sans-serif'; g.fillText(k, x, y);
+    g.fillStyle = '#2e241d'; g.font = '600 56px Fraunces, Georgia, serif'; g.fillText(String(v), x, y + 64);
+  });
+  if (d.topBook) { g.fillStyle = '#c2683f'; g.font = 'italic 500 40px Fraunces, Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  if (!blob) return toast('Resim hazırlanamadı.');
+  const file = new File([blob], `kitap-kulubu-${d.key}.png`, { type: 'image/png' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ files: [file], title: 'Aylık okuma özetim' });
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast('Özet resmi indirildi');
+}
+
+// Odak modu (Margins esintisi): menüler gizlenir, yalnızca zamanlayıcı ve müzik kalır.
+// Sayfa yeniden çizilmez, sadece sınıf değişir; böylece çalan müzik kesilmez.
+function setFocusMode(on) {
+  document.body.classList.toggle('focus-mode', on);
+  try {
+    if (on && document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  } catch (e) {}
+}
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) document.body.classList.remove('focus-mode'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('focus-mode')) setFocusMode(false); });

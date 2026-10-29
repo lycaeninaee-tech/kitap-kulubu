@@ -19,7 +19,7 @@
 - `style.css`: tema değişkenleri `:root` içinde. Dosyanın sonunda lofi dokunuşları, zamanlayıcı ve profil grafiği stilleri var.
 - `config.js`: Firebase ayarları, üyeler, izleyiciler, isteğe bağlı Google Books anahtarı.
 - `kitap-bilgi.json`: kitap sayfasındaki Bilgi ve Yazar sekmeleri için elle yazılmış bilgiler. Anahtar, Firestore'daki kitap id'si.
-- `sw.js`: ağ öncelikli önbellek. Kabuk dosyaları değişince `CACHE` sürümünü artır (şu an `kulup-v5`), yoksa telefonlar eski sürümde kalabilir.
+- `sw.js`: ağ öncelikli önbellek. Kabuk dosyaları değişince `CACHE` sürümünü artır (şu an `kulup-v6`), yoksa telefonlar eski sürümde kalabilir.
 - `manifest.webmanifest`, `icon.svg`: PWA olarak ana ekrana eklenebilir.
 - `tasima.json`: eski Claude artifact'ından taşınan veri. Bir kez içe aktarıldı, artık gerekmiyor.
 
@@ -37,6 +37,9 @@ Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Zamanlayıcı (`viewTime
 - Takip: kişiye özel alışkanlık sayfası. `sessions` verisinden son 18 haftanın ısı haritası, seriler, günün saatleri, haftanın günleri, aylık karşılaştırma ve kitap başına süre hesaplanır.
 - Sayfa geçişleri `go()` ile `history.pushState` kullanır; tarayıcının geri tuşu `popstate` ile önceki sayfaya döner.
 - Kitap sayfasındaki "Kitabı düzenle" formu (`bookEditForm`, `data-form="bookedit"`) ad, yazar, seçen, ay, durum ve künyeyi tek seferde günceller.
+- Takip sayfasının başında aylık özet kartı (`recapCard2`) var; "Paylaş" (`shareRecap`) özeti 1080x1350 PNG olarak çizip paylaşır ya da indirir.
+- Zamanlayıcıda odak modu (`setFocusMode`) yalnızca `body.focus-mode` sınıfını değiştirir, yeniden çizmez; müzik kesilmez.
+- El çizimi illüstrasyonlar `ILLUS` (cozy, tea, shelf) içinde satır içi SVG. Boş sayfalar `--illus-shelf` CSS değişkenini kullanır.
 - Gün anahtarları yerel saate göredir (`dayKey2`, `sessDay2`), UTC değil.
 - Ses notları: kitabın "Okumadan önce / okurken" sekmesinde, en çok 30 sn. `MediaRecorder` ile 24 kbit/sn kaydedilir ve not belgesine `audio` (data URL) + `dur` alanlarıyla `kind: 'own'` olarak eklenir.
 
