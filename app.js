@@ -160,7 +160,7 @@ function noteHTML(n, b) {
     : 'Spoiler içeriyor. Görmek için dokun.';
   return `<li class="note">
     <div class="nm">${isMember ? avatar(n.by, 'sm') : `<span class="av sm bot" aria-hidden="true">✦</span>`}<strong>${esc(n.by || 'Adsız')}</strong><span class="muted small">${esc(dateTR(n.at, { day: 'numeric', month: 'short' }))}${typeof n.pct === 'number' ? ' · %' + n.pct + ' noktasında' : ''}</span>${n.auto ? '<span class="badge">otomatik · doğrulayın</span>' : ''}${n.spoiler ? '<span class="badge sp">spoiler</span>' : ''}${delBtn(n, col)}</div>
-    ${hidden ? `<button type="button" class="spoiler" data-act="reveal" data-id="${esc(n.id)}">${why}</button>` : n.audio ? `<div class="vnote">${icon('mic')}<audio controls preload="none" src="${esc(n.audio)}"></audio><span class="muted small">${esc(n.dur || '')} sn</span></div>` : `<p class="nt">${esc(n.text)}</p>`}
+    ${hidden ? `<button type="button" class="spoiler" data-act="reveal" data-id="${esc(n.id)}">${why}</button>` : n.audio ? `<div class="vnote">${icon('mic')}<audio controls preload="none" src="${esc(n.audio)}"></audio><span class="muted small">${esc(n.dur || '')} sn</span></div>` : `<p class="nt${isMember && !n.auto && ['own', 'meeting'].includes(kindOf(n)) ? ' hand' : ''}">${esc(n.text)}</p>`}
     ${n.source ? `<p class="src"><a href="${esc(n.source)}" target="_blank" rel="noopener">Kaynağa git</a></p>` : ''}
   </li>`;
 }
@@ -478,17 +478,18 @@ function viewHome() {
     </section>
   </div>
   ${quoteMarquee(b)}
+  ${filmStrip()}
   ${others.length ? `<section class="rail-section">
-    <div class="rail-head"><h2 class="sec-title"><span class="idx">04</span>Rafımızda</h2><button type="button" class="linkbtn" data-act="nav" data-view="kitaplik">Tüm kitaplık →</button></div>
+    <div class="rail-head"><h2 class="sec-title"><span class="idx">05</span>Rafımızda</h2><button type="button" class="linkbtn" data-act="nav" data-view="kitaplik">Tüm kitaplık →</button></div>
     <div class="rail">${others.map(railItem).join('')}</div>
   </section>` : ''}
   <section class="timeline-section">
-    <h2 class="sec-title"><span class="idx">05</span>Kulüpte son yazılanlar</h2>
+    <h2 class="sec-title"><span class="idx">06</span>Kulüpte son yazılanlar</h2>
     ${feed.length ? `<ol class="timeline">${feed.map(n => {
       const hide = (n.spoiler || aheadOfMe(n, b)) && !S.reveal.has(n.id);
       const k = kindOf(n);
       return `<li style="--c:${colorOf(n.by)}">${avatar(n.by)}<div class="tl-body"><p class="small"><strong>${esc(n.by)}</strong> <span class="muted">${k === 'quote' ? 'bir alıntı ekledi' : k === 'meeting' ? 'toplantı notu yazdı' : n.audio ? 'ses notu bıraktı' : 'not yazdı'} · ${esc(dateTR(n.at, { day: 'numeric', month: 'short' }))}</span></p>
-        ${hide ? `<button type="button" class="linkbtn small" data-act="open" data-id="${id}" data-tab="${k === 'quote' ? 'alinti' : k === 'meeting' ? 'toplanti' : 'once'}">Spoiler olabilir, kitabın sayfasında aç</button>` : `<p class="ft${k === 'quote' ? ' q' : ''}">${k === 'quote' ? '“' + esc(n.text) + '”' : esc(n.text)}</p>`}</div></li>`;
+        ${hide ? `<button type="button" class="linkbtn small" data-act="open" data-id="${id}" data-tab="${k === 'quote' ? 'alinti' : k === 'meeting' ? 'toplanti' : 'once'}">Spoiler olabilir, kitabın sayfasında aç</button>` : `<p class="ft${k === 'quote' ? ' q' : ' hand'}">${k === 'quote' ? '“' + esc(n.text) + '”' : esc(n.text)}</p>`}</div></li>`;
     }).join('')}</ol>` : `<p class="muted">Henüz not yok. Okurken aklına geleni <button type="button" class="linkbtn" data-act="open" data-id="${id}" data-tab="once">Toplantı öncesi</button> bölümüne, sevdiğin cümleleri <button type="button" class="linkbtn" data-act="open" data-id="${id}" data-tab="alinti">Alıntılar</button>'a ekle.</p>`}
   </section>`;
 }
@@ -496,6 +497,17 @@ function viewHome() {
 // Kitaplık: duruma göre yana kayan raflar; her rafın altında ahşap bir pervaz
 // Okunan kitap rafa konmaz (hep tek kitap olur); kitaplığın başında geniş, koyu bir spot kartında durur
 const SHELVES = [['sirada', 'Sırada bekleyenler'], ['tamamlandi', 'Okuduklarımız'], ['birakildi', 'Yarım bıraktıklarımız']];
+// Polaroid: beyaz çerçeve, el yazısı başlık, kitaba göre sabit hafif eğim ve renkli bant
+function polaroid(b) {
+  const a = avgRating(b);
+  const rot = (hash(b.id) % 9) - 4;
+  const tape = ['#f7c9b3', '#cfe1d4', '#f2dfa6', '#d6dcf3'][hash(b.title || '') % 4];
+  return `<button type="button" class="polaroid" data-act="open" data-id="${esc(b.id)}" style="--rot:${rot}deg;--tape:${tape}">
+    <span class="pol-img" style="${coverVT(b)}">${coverHTML(b)}</span>
+    <span class="pol-cap">${esc(b.title)}</span>
+    ${a ? `<span class="pol-stars">${stars(a)}</span>` : ''}
+  </button>`;
+}
 function spotlight(b) {
   const src = coverSrc(b);
   const bg = src ? `background-image:url('${esc(src)}')` : `background:hsl(${hash(b.title || '') % 360} 35% 32%)`;
@@ -524,8 +536,11 @@ function viewLibrary() {
     const list = sortedBooks().filter(b => (b.status || 'okunuyor') === k);
     const add = k === 'sirada' && !S.showAdd ? `<button type="button" class="addcard rail-add" data-act="toggle-add">${icon('plus')}Kitap ekle</button>` : '';
     if (!list.length && !add) return '';
+    const head = `<div class="rail-head"><h2 class="sec-title">${title} <span class="count">${list.length}</span></h2></div>`;
+    // Bitirdiklerimiz rafta değil, bantla tutturulmuş polaroidlerden bir kolajda
+    if (k === 'tamamlandi') return `<section class="shelf-row">${head}<div class="collage">${list.map(polaroid).join('')}</div></section>`;
     return `<section class="shelf-row">
-      <div class="rail-head"><h2 class="sec-title">${title} <span class="count">${list.length}</span></h2></div>
+      ${head}
       <div class="rail shelf-rail">${list.map(railItem).join('')}${add}</div>
     </section>`;
   }).join('');
@@ -916,7 +931,8 @@ function tabMeeting(b, id) {
         <div class="actions"><button class="btn accent sm" type="submit">Not ekle</button></div>
       </form>
     </section>
-  </div>`;
+  </div>
+  ${albumHTML(b)}`;
 }
 
 /* ---------- render ---------- */
@@ -1124,6 +1140,7 @@ document.addEventListener('click', e => {
     case 'pview': S.profileOf = el.dataset.f; S.editProfile = false; render(); break;
     case 'pedit': S.editProfile = true; render(); { const bio = document.getElementById('pf-bio'); if (bio) bio.focus(); } break;
     case 'pedit-cancel': S.editProfile = false; render(); break;
+    case 'photo': openLightbox(el.dataset.book, id); break;
     case 'recapm': S.recapBack = Number(el.dataset.v) || 0; render(); break;
     case 'recapshare': shareRecap().catch(fail); break;
     case 'focusmode': setFocusMode(!document.body.classList.contains('focus-mode')); break;
@@ -1171,6 +1188,7 @@ document.addEventListener('change', e => {
     }
     case 'cover': { const f = el.files && el.files[0]; el.value = ''; if (f) uploadFile(id, f); break; }
     case 'nbphoto': { const f = el.files && el.files[0]; el.value = ''; takePhoto(f); break; }
+    case 'mphoto': { const files = [...(el.files || [])]; el.value = ''; uploadPhotos(id, files); break; }
   }
 });
 
@@ -1284,6 +1302,8 @@ function startData() {
 function stopData() {
   while (subs.length) { try { subs.pop()(); } catch (e) {} }
   for (const k of Object.keys(noteSubs)) delete noteSubs[k];
+  for (const k of Object.keys(photoSubs)) delete photoSubs[k];
+  S.photos = {};
   Object.assign(S, { books: [], sugg: [], notes: {}, loaded: false });
 }
 
@@ -1889,7 +1909,7 @@ function pageChange(run) {
   if (!document.startViewTransition || reduceMotion() || document.hidden) return run();
   try { document.startViewTransition(run).updateCallbackDone.catch(err => { console.error(err); run(); }); } catch (err) { run(); }
 }
-const REVEAL_SEL = '.stage-text > *, .spot-body > *, .stage-cover, .tile, .card, .rail-section, .shelf-row, .numbers > div, .timeline li, .stats .stat, .marquee, .page-head, .rozet, .chart30';
+const REVEAL_SEL = '.stage-text > *, .spot-body > *, .stage-cover, .tile, .card, .rail-section, .shelf-row, .numbers > div, .timeline li, .stats .stat, .marquee, .page-head, .rozet, .chart30, .polaroid, .film, .filmstrip';
 function enhance(root) {
   const first = !FIRST_ANIM_DONE && S.loaded;
   if (!(ANIM_NEXT || first) || reduceMotion()) { ANIM_NEXT = false; return; }
@@ -2001,4 +2021,102 @@ function badgesHTML(name) {
   return `<section class="card rozet-card"><h3>Rozetler <span class="count">${won}/${list.length}</span></h3>
     <div class="rozet-grid">${list.map(([e, t, d, ok]) => `<div class="rozet${ok ? ' won' : ''}" title="${esc(d)}"><span class="bd-ic" aria-hidden="true">${e}</span><b>${esc(t)}</b><small>${esc(d)}</small></div>`).join('')}</div>
   </section>`;
+}
+
+// Toplantı fotoğraf albümü: her fotoğraf books/{kitap}/photos altında ayrı belge (en fazla ~1200 px, JPEG; Storage yok)
+const photoSubs = {};
+function ensurePhotos(id) {
+  if (!fs || photoSubs[id]) return;
+  photoSubs[id] = db.watch('books/' + id + '/photos', list => {
+    (S.photos = S.photos || {})[id] = list.sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+    if (S.view === 'buay' || (S.view === 'kitap' && S.bookId === id)) render();
+  });
+  subs.push(photoSubs[id]);
+}
+async function shrinkPhoto(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const scale = Math.min(1, 1200 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scale);
+    c.height = Math.round(img.naturalHeight * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    let q = 0.82, data = c.toDataURL('image/jpeg', q);
+    while (data.length > 850000 && q > 0.4) { q -= 0.1; data = c.toDataURL('image/jpeg', q); }
+    return data;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function uploadPhotos(bookId, files) {
+  const list = [...files].filter(f => /^image\//.test(f.type));
+  if (!list.length) return toast('Resim dosyası seç.');
+  for (let i = 0; i < list.length; i++) {
+    toast(`Fotoğraf yükleniyor (${i + 1}/${list.length})...`);
+    try {
+      const data = await shrinkPhoto(list[i]);
+      if (data.length > 900000) { toast('Bu fotoğraf çok büyük, atlandı.'); continue; }
+      await db.add('books/' + bookId + '/photos', { by: S.me, data, at: nowISO() });
+    } catch (err) { fail(err); return; }
+  }
+  toast(list.length > 1 ? 'Fotoğraflar eklendi' : 'Fotoğraf eklendi');
+}
+const photoById = (bookId, id) => ((S.photos || {})[bookId] || []).find(p => p.id === id);
+function albumHTML(b) {
+  ensurePhotos(b.id);
+  const list = (S.photos || {})[b.id] || [];
+  const col = 'books/' + b.id + '/photos';
+  return `<section class="album">
+    <div class="rail-head"><h2 class="sec-title">Toplantıdan kareler <span class="count">${list.length}</span></h2>
+      <label class="btn sm">${icon('img')}Fotoğraf ekle<input class="sr" type="file" accept="image/*" multiple data-change="mphoto" data-id="${esc(b.id)}"></label></div>
+    ${list.length ? `<div class="masonry">${list.map(p => `<figure class="film" style="--rot:${(hash(p.id) % 5) - 2}deg">
+      <button type="button" class="film-img" data-act="photo" data-book="${esc(b.id)}" data-id="${esc(p.id)}"><img src="${esc(p.data)}" alt="${esc(p.by)} toplantı fotoğrafı" loading="lazy"></button>
+      <figcaption><span class="hand">${esc(p.by)} · ${esc(dateTR(p.at, { day: 'numeric', month: 'short' }))}</span>${delBtn(p, col)}</figcaption>
+    </figure>`).join('')}</div>` : `<p class="muted">Buluşmadan bir kare ekleyin: masadaki kitaplar, kahveler, gülüşler. Burada polaroid gibi birikir.</p>`}
+  </section>`;
+}
+// Ana sayfa: bütün kitapların toplantılarından son kareler, film şeridi gibi
+function filmStrip() {
+  S.books.forEach(x => ensurePhotos(x.id));
+  const all = S.books.flatMap(x => ((S.photos || {})[x.id] || []).map(p => ({ ...p, book: x }))).sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, 12);
+  if (!all.length) return '';
+  return `<section class="rail-section">
+    <div class="rail-head"><h2 class="sec-title"><span class="idx">04</span>Toplantılardan kareler</h2></div>
+    <div class="filmstrip"><div class="fs-track">${all.map(p => `<button type="button" class="fs-item" data-act="photo" data-book="${esc(p.book.id)}" data-id="${esc(p.id)}"><img src="${esc(p.data)}" alt="${esc(p.book.title)} toplantısından" loading="lazy"><span class="hand">${esc(p.book.title)}</span></button>`).join('')}</div></div>
+  </section>`;
+}
+function openLightbox(bookId, id) {
+  const p = photoById(bookId, id);
+  if (!p) return;
+  const b = bookById(bookId) || {};
+  let lb = document.getElementById('lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'lightbox';
+    lb.className = 'lightbox';
+    lb.addEventListener('click', () => lb.classList.remove('on'));
+    document.body.appendChild(lb);
+  }
+  lb.innerHTML = `<figure><img src="${esc(p.data)}" alt=""><figcaption class="hand">${esc(b.title || '')} · ${esc(p.by)} · ${esc(dateTR(p.at, { day: 'numeric', month: 'long' }))}</figcaption></figure>`;
+  requestAnimationFrame(() => lb.classList.add('on'));
+}
+document.addEventListener('keydown', e => { const lb = document.getElementById('lightbox'); if (e.key === 'Escape' && lb) lb.classList.remove('on'); });
+
+// İmleç balonu (yalnızca fareyle): kapak ve fotoğrafların üzerinde "Aç" / "Büyüt" yazan yuvarlak balon
+if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  const bubble = document.createElement('div');
+  bubble.className = 'cbubble';
+  bubble.setAttribute('aria-hidden', 'true');
+  document.addEventListener('DOMContentLoaded', () => document.body.appendChild(bubble));
+  if (document.body) document.body.appendChild(bubble);
+  document.addEventListener('pointermove', e => {
+    const t = e.target.closest ? e.target.closest('.rail-item, .polaroid, .film-img, .fs-item') : null;
+    if (!t || reduceMotion()) { bubble.classList.remove('on'); return; }
+    bubble.textContent = t.matches('.film-img, .fs-item') ? 'Büyüt' : 'Aç';
+    bubble.style.left = e.clientX + 'px';
+    bubble.style.top = e.clientY + 'px';
+    bubble.classList.add('on');
+  }, { passive: true });
+  document.addEventListener('pointerleave', () => bubble.classList.remove('on'));
 }
