@@ -395,6 +395,8 @@ function viewLogin() {
 const googleG = () => '<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="stroke:none"><path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3zM12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22zM6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9zM12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.8 9.4 6 12 6z"/></svg>';
 
 // Ana sayfa: kapağın renginden beslenen koyu "sahne", altında bento kutular, alıntı şeridi, raf ve zaman çizelgesi
+// Editoryal dokunuş: çok kelimeli başlıklarda son kelime italik ve vurgu renginde
+const emLast = s => { const w = esc(s || '').split(' '); return w.length > 1 ? w.slice(0, -1).join(' ') + ' <em>' + w[w.length - 1] + '</em>' : w[0]; };
 const coverVT = b => `view-transition-name:c-${String(b.id).replace(/[^A-Za-z0-9_-]/g, '')}`;
 const ringAvatar = (name, pct) => `<span class="ravatar" style="--p:${pct};--c:${colorOf(name)}" title="${esc(name)}: %${pct}">${avatar(name)}</span>`;
 function bigRing(pct, label) {
@@ -443,7 +445,7 @@ function viewHome() {
     <div class="stage-cover tilt" style="${coverVT(b)}">${coverHTML(b, 'lg')}</div>
     <div class="stage-text">
       <p class="eyebrow">${esc(b.month ? monthTR(b.month) : 'Bu ay')} · Şu an okuduğumuz</p>
-      <h1 class="display">${esc(b.title)}</h1>
+      <h1 class="display">${emLast(b.title)}</h1>
       <p class="stage-author">${esc(b.author || '')}</p>
       <p class="stage-meta">${b.pickedBy ? `${esc(b.pickedBy)} seçti` : ''}${b.pickedBy && meta ? ' · ' : ''}${meta}</p>
       <div class="stage-readers">${ms.map(n => `<span class="sr-one">${ringAvatar(n, pct(n))}<span><b>${esc(n)}</b><small>%${pct(n)}</small></span></span>`).join('')}</div>
@@ -455,7 +457,7 @@ function viewHome() {
   </section>
   <div class="bento">
     <section class="tile tile-meet">
-      <p class="eyebrow-dark">${icon('cal')}Toplantı</p>
+      <p class="eyebrow-dark"><span class="idx">01</span>Toplantı</p>
       ${b.meetingDate ? `
         <p class="mega">${d > 0 ? `<span data-count="${d}">${d}</span><small>gün kaldı</small>` : d === 0 ? 'Bugün!' : 'Yapıldı'}</p>
         <p class="tile-line">${esc(dateTR(b.meetingDate, { weekday: 'long', day: 'numeric', month: 'long' }))}${b.meetingTime ? ' · ' + esc(b.meetingTime) : ''}${b.meetingPlace ? ' · ' + esc(b.meetingPlace) : ''}</p>
@@ -464,12 +466,12 @@ function viewHome() {
       : `<p class="mega mega-soft">Tarih yok</p><p class="tile-line">Buluşma günü henüz belli değil.</p><div class="actions" style="margin-top:12px"><button type="button" class="btn ghost sm" data-act="open" data-id="${id}" data-tab="toplanti">${icon('plus')}Tarih ve yer ekle</button></div>`}
     </section>
     <section class="tile tile-prog">
-      <p class="eyebrow-dark">${icon('books')}Kulübün ilerlemesi</p>
+      <p class="eyebrow-dark"><span class="idx">02</span>Kulübün ilerlemesi</p>
       ${bigRing(avgP, 'ortalama')}
       <ul class="prog compact">${ms.map(n => progRow(b, n)).join('')}</ul>
     </section>
     <section class="tile tile-next">
-      <p class="eyebrow-dark">${icon('spark')}Sıradaki seçen</p>
+      <p class="eyebrow-dark"><span class="idx">03</span>Sıradaki seçen</p>
       <div class="next">${avatar(np, 'lg')}<div><p class="next-name">${esc(np)}</p><p class="small muted">bir sonraki kitabı seçecek</p></div></div>
       <p class="order">${ms.map(n => `<span class="${n === np ? 'on' : ''}">${esc(n)}</span>`).join('<span>→</span>')}</p>
       ${top ? `<button type="button" class="toppick" data-act="nav" data-view="oneriler"><span class="label">En çok oy alan öneri</span><b>${esc(top.title)}</b><span class="small muted">${esc(top.author || '')} · ${voteCount(top)} oy</span></button>` : ''}
@@ -477,11 +479,11 @@ function viewHome() {
   </div>
   ${quoteMarquee(b)}
   ${others.length ? `<section class="rail-section">
-    <div class="rail-head"><h2 class="sec-title">Rafımızda</h2><button type="button" class="linkbtn" data-act="nav" data-view="kitaplik">Tüm kitaplık →</button></div>
+    <div class="rail-head"><h2 class="sec-title"><span class="idx">04</span>Rafımızda</h2><button type="button" class="linkbtn" data-act="nav" data-view="kitaplik">Tüm kitaplık →</button></div>
     <div class="rail">${others.map(railItem).join('')}</div>
   </section>` : ''}
   <section class="timeline-section">
-    <h2 class="sec-title">Kulüpte son yazılanlar</h2>
+    <h2 class="sec-title"><span class="idx">05</span>Kulüpte son yazılanlar</h2>
     ${feed.length ? `<ol class="timeline">${feed.map(n => {
       const hide = (n.spoiler || aheadOfMe(n, b)) && !S.reveal.has(n.id);
       const k = kindOf(n);
@@ -492,7 +494,26 @@ function viewHome() {
 }
 
 // Kitaplık: duruma göre yana kayan raflar; her rafın altında ahşap bir pervaz
-const SHELVES = [['okunuyor', 'Şu an okuduklarımız'], ['sirada', 'Sırada bekleyenler'], ['tamamlandi', 'Okuduklarımız'], ['birakildi', 'Yarım bıraktıklarımız']];
+// Okunan kitap rafa konmaz (hep tek kitap olur); kitaplığın başında geniş, koyu bir spot kartında durur
+const SHELVES = [['sirada', 'Sırada bekleyenler'], ['tamamlandi', 'Okuduklarımız'], ['birakildi', 'Yarım bıraktıklarımız']];
+function spotlight(b) {
+  const src = coverSrc(b);
+  const bg = src ? `background-image:url('${esc(src)}')` : `background:hsl(${hash(b.title || '') % 360} 35% 32%)`;
+  const ms = members();
+  const pct = n => (b.progress || {})[slug(n)] || 0;
+  const d = b.meetingDate ? daysUntil(b.meetingDate) : null;
+  return `<section class="spotlight">
+    <div class="stage-bg" style="${bg}"></div>
+    <div class="stage-cover tilt" style="${coverVT(b)}">${coverHTML(b, 'lg')}</div>
+    <div class="spot-body">
+      <p class="eyebrow">Şu an okuduğumuz${b.month ? ' · ' + esc(monthTR(b.month)) : ''}${d !== null && d >= 0 ? ` · toplantıya ${d === 0 ? 'bugün' : d + ' gün'}` : ''}</p>
+      <h2 class="spot-title">${emLast(b.title)}</h2>
+      <p class="stage-author">${esc(b.author || '')}</p>
+      <ul class="spot-readers">${ms.map(n => `<li style="--c:${colorOf(n)}">${avatar(n, 'sm')}<span>${esc(n)}</span><span class="sp-bar"><span style="width:${pct(n)}%"></span></span><b>%${pct(n)}</b></li>`).join('')}</ul>
+      <div class="actions"><button type="button" class="btn" data-act="open" data-id="${esc(b.id)}">Kitabın sayfası</button><button type="button" class="btn glass" data-act="open" data-id="${esc(b.id)}" data-tab="once">Notlar</button></div>
+    </div>
+  </section>`;
+}
 function viewLibrary() {
   const ms = members();
   const done = S.books.filter(b => b.status === 'tamamlandi');
@@ -521,6 +542,7 @@ function viewLibrary() {
     <div><b class="t">${rated.length ? esc(rated[0][0].title) : '–'}</b><span>en sevilen</span></div>
   </div>
   <p class="picks">${ms.map(n => `<span>${avatar(n, 'sm')}${esc(n)} <b>${S.books.filter(b => b.pickedBy === n).length}</b> seçim</span>`).join('')}</p>
+  ${sortedBooks().filter(b => (b.status || 'okunuyor') === 'okunuyor').map(spotlight).join('')}
   ${rows}`;
 }
 
@@ -615,7 +637,7 @@ function viewBook() {
     <div class="hero-body">
       <div class="hb-text">
         <div class="meta"><span class="pill s-${esc(b.status || 'okunuyor')}">${esc(STATUS[b.status] || 'Okunuyor')}</span>${b.month ? `<span>${esc(monthTR(b.month))}</span>` : ''}</div>
-        <h2 class="hero-title">${esc(b.title)}</h2>
+        <h2 class="hero-title">${emLast(b.title)}</h2>
         <p class="hero-author">${esc(b.author || 'Yazar belirtilmedi')}</p>
         <div class="meta">
           ${b.pickedBy ? `<span>${avatar(b.pickedBy, 'sm')}${esc(b.pickedBy)} seçti</span>` : ''}
@@ -1705,44 +1727,44 @@ ${weekGoalCard2(mine, (S.profiles || {})[slug(S.me)] || {})}
 }
 
 // El çizimi illüstrasyonlar: mürekkep çizgisi + birkaç sıcak renk lekesi (Margins esintisi)
-const INK = '#3b2f27';
+const INK = '#1f1a16';
 const ILLUS = {
   // Okuma koltuğu, kıvrılmış kedi, lamba ve kitap yığını
   cozy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M8 136 C60 133 150 138 212 134"/>
-<path d="M58 118 C53 86 58 60 88 57 C116 55 126 64 126 92 L126 118" fill="#f5e1d3"/>
-<path d="M48 104 C66 99 118 99 136 104 C138 113 133 120 126 120 L58 120 C51 120 46 113 48 104Z" fill="#f2d2bd"/>
+<path d="M58 118 C53 86 58 60 88 57 C116 55 126 64 126 92 L126 118" fill="#fbe2d6"/>
+<path d="M48 104 C66 99 118 99 136 104 C138 113 133 120 126 120 L58 120 C51 120 46 113 48 104Z" fill="#f8cdb7"/>
 <path d="M45 94 C37 94 37 108 44 112 L49 118 M139 94 C147 94 147 108 140 112 L135 118"/>
 <path d="M56 120 L53 131 M128 120 L131 131"/>
-<path d="M74 102 C73 89 100 86 106 99 C100 103 80 104 74 102Z" fill="#e8b48f"/>
+<path d="M74 102 C73 89 100 86 106 99 C100 103 80 104 74 102Z" fill="#f1a47f"/>
 <path d="M98 92 L101 85 L104 93 M92 91 L94 85 L97 91"/>
 <path d="M74 101 C66 100 65 93 72 92"/>
 <path d="M178 131 L178 54 M168 132 C173 128 183 128 188 132"/>
-<path d="M162 54 L194 54 L185 32 L171 32Z" fill="#f6e3b8"/>
+<path d="M162 54 L194 54 L185 32 L171 32Z" fill="#f6e0ae"/>
 <path d="M164 64 L156 74 M178 66 L178 78 M192 64 L200 74" stroke-dasharray="2 4"/>
-<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#c2683f"/>
-<path d="M18 123 L42 123 L42 115 L18 115Z" fill="#7f9a7a"/>
-<path d="M15 115 L39 115 L39 107 L15 107Z" fill="#f2d2bd"/>
+<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#e0592f"/>
+<path d="M18 123 L42 123 L42 115 L18 115Z" fill="#7fa38a"/>
+<path d="M15 115 L39 115 L39 107 L15 107Z" fill="#f8cdb7"/>
 <path d="M32 107 C30 100 36 96 40 99"/>
 </svg>`,
   // Buharı tüten çay fincanı ve açık kitap
   tea: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M10 134 C70 131 150 136 210 132"/>
-<path d="M28 126 C46 116 70 116 88 124 C106 116 130 116 148 126 L148 132 C130 124 106 124 88 132 C70 124 46 124 28 132Z" fill="#fffaf3"/>
+<path d="M28 126 C46 116 70 116 88 124 C106 116 130 116 148 126 L148 132 C130 124 106 124 88 132 C70 124 46 124 28 132Z" fill="#fbf9f6"/>
 <path d="M88 124 L88 132 M40 122 C52 119 64 119 76 122 M100 122 C112 119 124 119 136 122"/>
-<path d="M150 82 L196 82 C196 108 186 118 173 118 C160 118 150 108 150 82Z" fill="#f5e1d3"/>
+<path d="M150 82 L196 82 C196 108 186 118 173 118 C160 118 150 108 150 82Z" fill="#fbe2d6"/>
 <path d="M196 90 C206 90 206 104 194 106"/>
 <path d="M142 122 C158 127 188 127 204 122"/>
 <path d="M164 72 C158 64 170 58 164 48 M178 72 C172 64 184 58 178 48"/>
-<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#c2683f"/>
+<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#e0592f"/>
 </svg>`,
   // Raf, kitaplar ve saksı
   shelf: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M20 120 C80 118 140 121 200 119 M24 120 L24 132 M196 119 L196 131"/>
-<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#c2683f"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#f2d2bd"/>
-<path d="M66 119 L66 60 L80 60 L80 119Z" fill="#7f9a7a"/><path d="M84 119 L96 72 L108 75 L97 120Z" fill="#f6e3b8"/>
+<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#e0592f"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#f8cdb7"/>
+<path d="M66 119 L66 60 L80 60 L80 119Z" fill="#7fa38a"/><path d="M84 119 L96 72 L108 75 L97 120Z" fill="#f6e0ae"/>
 <path d="M40 76 L46 76 M70 70 L76 70 M70 108 L76 108"/>
-<path d="M140 119 L136 96 L164 96 L160 119Z" fill="#e8b48f"/>
+<path d="M140 119 L136 96 L164 96 L160 119Z" fill="#f1a47f"/>
 <path d="M150 96 C146 80 132 76 128 64 M150 96 C152 78 164 74 170 62 M150 96 C150 84 148 72 150 58"/>
 <path d="M126 66 C122 60 130 56 132 62 M168 64 C172 58 178 62 174 66 M148 60 C146 54 154 52 152 58"/>
 </svg>`,
@@ -1810,27 +1832,27 @@ async function shareRecap() {
   c.width = 1080; c.height = 1350;
   const g = c.getContext('2d');
   try { await document.fonts.ready; } catch (e) {}
-  g.fillStyle = '#f6efe6'; g.fillRect(0, 0, 1080, 1350);
-  g.fillStyle = '#fffaf3';
+  g.fillStyle = '#f2eee8'; g.fillRect(0, 0, 1080, 1350);
+  g.fillStyle = '#fbf9f6';
   g.beginPath(); g.roundRect(60, 60, 960, 1230, 48); g.fill();
   const img = new Image();
   img.src = 'data:image/svg+xml,' + encodeURIComponent(ILLUS.cozy);
   await new Promise(r => { img.onload = r; img.onerror = r; });
   try { g.drawImage(img, 290, 120, 500, 341); } catch (e) {}
   g.textAlign = 'center';
-  g.fillStyle = '#c2683f'; g.font = '600 34px Inter, sans-serif';
+  g.fillStyle = '#e0592f'; g.font = '600 34px Geist, Inter, sans-serif';
   g.fillText('KİTAP KULÜBÜ · ' + d.label.toLocaleUpperCase('tr-TR'), 540, 530);
-  g.fillStyle = '#2e241d'; g.font = '600 120px Fraunces, Georgia, serif';
+  g.fillStyle = '#15120f'; g.font = '400 136px "Instrument Serif", Georgia, serif';
   g.fillText(hoursText(d.total), 540, 680);
-  g.fillStyle = '#8a7a6d'; g.font = '400 40px Inter, sans-serif';
+  g.fillStyle = '#78706a'; g.font = '400 40px Geist, Inter, sans-serif';
   g.fillText(S.me + (S.recapBack ? ' geçen ay okudu' : ' bu ay okudu'), 540, 750);
   const facts = [['Okunan gün', d.days], ['Oturum', d.sessions], ['En uzun', dk2(d.longest)], ['En sevdiği gün', d.topDay || '–']];
   facts.forEach(([k, v], i) => {
     const x = 300 + (i % 2) * 480, y = 880 + Math.floor(i / 2) * 150;
-    g.fillStyle = '#8a7a6d'; g.font = '500 30px Inter, sans-serif'; g.fillText(k, x, y);
-    g.fillStyle = '#2e241d'; g.font = '600 56px Fraunces, Georgia, serif'; g.fillText(String(v), x, y + 64);
+    g.fillStyle = '#78706a'; g.font = '500 30px Geist, Inter, sans-serif'; g.fillText(k, x, y);
+    g.fillStyle = '#15120f'; g.font = '400 64px "Instrument Serif", Georgia, serif'; g.fillText(String(v), x, y + 64);
   });
-  if (d.topBook) { g.fillStyle = '#c2683f'; g.font = 'italic 500 40px Fraunces, Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
+  if (d.topBook) { g.fillStyle = '#e0592f'; g.font = 'italic 500 40px "Instrument Serif", Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   if (!blob) return toast('Resim hazırlanamadı.');
   const file = new File([blob], `kitap-kulubu-${d.key}.png`, { type: 'image/png' });
@@ -1867,7 +1889,7 @@ function pageChange(run) {
   if (!document.startViewTransition || reduceMotion() || document.hidden) return run();
   try { document.startViewTransition(run).updateCallbackDone.catch(err => { console.error(err); run(); }); } catch (err) { run(); }
 }
-const REVEAL_SEL = '.stage-text > *, .stage-cover, .tile, .card, .rail-section, .shelf-row, .numbers > div, .timeline li, .stats .stat, .marquee, .page-head, .rozet, .chart30';
+const REVEAL_SEL = '.stage-text > *, .spot-body > *, .stage-cover, .tile, .card, .rail-section, .shelf-row, .numbers > div, .timeline li, .stats .stat, .marquee, .page-head, .rozet, .chart30';
 function enhance(root) {
   const first = !FIRST_ANIM_DONE && S.loaded;
   if (!(ANIM_NEXT || first) || reduceMotion()) { ANIM_NEXT = false; return; }
@@ -1907,6 +1929,13 @@ if (window.matchMedia && matchMedia('(hover: hover)').matches) {
   document.addEventListener('pointermove', e => {
     const el = e.target.closest ? e.target.closest('.tilt') : null;
     if (tiltEl && tiltEl !== el) { tiltEl.style.removeProperty('--rx'); tiltEl.style.removeProperty('--ry'); }
+    // Kutuların üzerinde fareyi izleyen yumuşak ışık (CSS'teki --mx/--my)
+    const glow = e.target.closest ? e.target.closest('.tile, .card') : null;
+    if (glow) {
+      const g = glow.getBoundingClientRect();
+      glow.style.setProperty('--mx', (e.clientX - g.left).toFixed(0) + 'px');
+      glow.style.setProperty('--my', (e.clientY - g.top).toFixed(0) + 'px');
+    }
     tiltEl = el;
     if (!el || reduceMotion()) return;
     const r = el.getBoundingClientRect();

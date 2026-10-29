@@ -19,7 +19,7 @@
 - `style.css`: tema değişkenleri `:root` içinde. Dosyanın sonunda lofi dokunuşları, zamanlayıcı ve profil grafiği stilleri var.
 - `config.js`: Firebase ayarları, üyeler, izleyiciler, isteğe bağlı Google Books anahtarı.
 - `kitap-bilgi.json`: kitap sayfasındaki Bilgi ve Yazar sekmeleri için elle yazılmış bilgiler. Anahtar, Firestore'daki kitap id'si.
-- `sw.js`: ağ öncelikli önbellek. İstekler `cache: 'no-cache'` ile gider, yani GitHub Pages'in 10 dakikalık önbelleğine takılmadan her açılışta sunucuya sorulur; çevrimdışıyken kayıtlı kopya kullanılır. Yeni service worker devreye girince `index.html` sayfayı bir kez yeniler. Kabuk dosyaları değişince yine de `CACHE` sürümünü artır (şu an `kulup-v9`).
+- `sw.js`: ağ öncelikli önbellek. İstekler `cache: 'no-cache'` ile gider, yani GitHub Pages'in 10 dakikalık önbelleğine takılmadan her açılışta sunucuya sorulur; çevrimdışıyken kayıtlı kopya kullanılır. Yeni service worker devreye girince `index.html` sayfayı bir kez yeniler. Kabuk dosyaları değişince yine de `CACHE` sürümünü artır (şu an `kulup-v10`).
 - `manifest.webmanifest`, `icon.svg`: PWA olarak ana ekrana eklenebilir.
 - `tasima.json`: eski Claude artifact'ından taşınan veri. Bir kez içe aktarıldı, artık gerekmiyor.
 
@@ -54,7 +54,9 @@ Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Okuma köşesi (`viewTim
 
 ## Tasarım
 
-Sıcak lofi teması: krem zemin `#f6efe6`, terrakota vurgu `#c2683f`, adaçayı `#7f9a7a` (mola rengi), yuvarlak kartlar, hap biçimli düğmeler. Yeni renkleri doğrudan yazmak yerine `:root` değişkenlerini kullan.
+Modern editoryal tema: sıcak kâğıt zemin `#f2eee8`, mürekkep siyahı `#15120f` (ana düğmeler), trabzon hurması vurgu `#e0592f` (az ve yerinde), koyu orman yeşili `#13201c` (sahne, spot kartı, kitap sayfası üstü). Yazı tipleri: başlıklar Instrument Serif (tek ağırlık 400; kalın yapma), arayüz Geist. Çok kelimeli kitap başlıklarında son kelime italik ve vurgu renginde (`emLast`). Bölüm başlıklarında numaralı etiket (`.idx`). Koyu bölümlerde film greni (`--grain`). Yeni renkleri doğrudan yazmak yerine `:root` değişkenlerini kullan.
+
+- Kitaplık: okunan kitap rafta değil, başta koyu `spotlight` kartında; raflar Sırada / Okuduklarımız / Yarım bıraktıklarımız.
 
 ## Çalışma şekli
 
