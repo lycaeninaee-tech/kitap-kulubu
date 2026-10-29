@@ -314,6 +314,38 @@ function lookupNext() {
   if (b) autoLookup(b);
 }
 
+// Öneriler de kitaplık gibi ayrıntılı tutulur: eklenince kapak, künye ve tanıtım bir kez aranır.
+const lookingSugg = new Set();
+async function lookupSugg(s) {
+  if (lookingSugg.has(s.id) || s.lookupAt || !fs) return;
+  lookingSugg.add(s.id);
+  try {
+    await db.patch('suggestions', s.id, { lookupAt: nowISO() });
+    const found = await searchBooks(s.title, s.author);
+    if (!found.length) return;
+    const best = found.find(x => x.cover && x.from === 'Google Books') || found.find(x => x.cover) || found[0];
+    const any = k => (found.find(x => x[k]) || {})[k];
+    const patch = {
+      info: {
+        pages: best.pages || any('pages') || null,
+        year: best.year || any('year') || null,
+        publisher: best.publisher || any('publisher') || null,
+        genre: best.genre || any('genre') || null,
+      },
+      desc: best.description || any('description') || '',
+    };
+    if (!s.author && best.author) patch.author = best.author;
+    if (!coverSrc(s) && best.cover) patch.coverUrl = best.cover;
+    await db.patch('suggestions', s.id, patch);
+  } catch (e) { console.error(e); } finally {
+    lookingSugg.delete(s.id);
+  }
+}
+function lookupSuggNext() {
+  const s = S.sugg.find(x => !x.lookupAt && !x.adoptedBookId && !lookingSugg.has(x.id));
+  if (s) lookupSugg(s);
+}
+
 async function findCovers(id) {
   const b = bookById(id);
   if (!b) return;
@@ -508,17 +540,25 @@ function viewSugg() {
   const item = (s, i) => {
     const voted = !!(s.votes && s.votes[slug(S.me)]);
     const voters = members().filter(n => s.votes && s.votes[slug(n)]);
-    return `<li class="card sugg">
-      ${s.adoptedBookId ? `<span class="rank">✓</span>` : `<button type="button" class="vote${voted ? ' on' : ''}" data-act="vote" data-id="${esc(s.id)}" aria-pressed="${voted}" aria-label="Oy ver">${icon('heart')}<span>${voteCount(s)}</span></button>`}
+    const info = s.info || {};
+    const meta = [info.year, info.pages ? info.pages + ' sayfa' : '', info.genre, info.publisher].filter(Boolean).map(esc).join(' · ');
+    const searching = !s.lookupAt || lookingSugg.has(s.id);
+    return `<li class="card sugg sugg-rich">
+      <div class="sugg-side">
+        ${coverHTML(s)}
+        ${s.adoptedBookId ? `<span class="rank">✓</span>` : `<button type="button" class="vote${voted ? ' on' : ''}" data-act="vote" data-id="${esc(s.id)}" aria-pressed="${voted}" aria-label="Oy ver">${icon('heart')}<span>${voteCount(s)}</span></button>`}
+      </div>
       <div class="stack">
         ${i === 0 && !s.adoptedBookId && voteCount(s) ? '<span class="label" style="color:var(--accent)">En çok oy alan</span>' : ''}
         <h3>${esc(s.title)}</h3>
         ${s.author ? `<p class="muted">${esc(s.author)}</p>` : ''}
-        ${s.why ? `<p class="nt">${esc(s.why)}</p>` : ''}
+        ${meta ? `<p class="small muted">${meta}</p>` : searching && !s.adoptedBookId ? '<p class="small muted">Kitap bilgileri aranıyor...</p>' : ''}
+        ${s.desc ? `<details class="sugg-desc"><summary>${esc(s.desc.slice(0, 180))}${s.desc.length > 180 ? '…' : ''}</summary><p>${esc(s.desc)}</p></details>` : ''}
+        ${s.why ? `<p class="nt quote" style="padding-left:12px"><b>Neden:</b> ${esc(s.why)}</p>` : ''}
         <p class="who small">${avatar(s.by, 'sm')}<span>${esc(s.by)} önerdi</span>${voters.length ? `<span class="muted">· Beğenenler: ${voters.map(esc).join(', ')}</span>` : ''}</p>
-        ${s.adoptedBookId ? '<p><span class="pill s-tamamlandi">Kulübe seçildi</span></p>' : `
+        ${s.adoptedBookId ? `<div class="actions"><span class="pill s-tamamlandi">Kitaplıkta</span>${bookById(s.adoptedBookId) ? `<button type="button" class="btn ghost sm" data-act="open" data-id="${esc(s.adoptedBookId)}">Kitabı aç</button>` : ''}</div>` : `
         <div class="actions">
-          <button type="button" class="btn ghost sm" data-act="adopt" data-id="${esc(s.id)}">Okuyacağımız kitap yap</button>
+          <button type="button" class="btn sm" data-act="adopt" data-id="${esc(s.id)}">${icon('books')}Kitaplığa ekle</button>
           ${delBtn(s, 'suggestions')}
         </div>`}
       </div>
@@ -534,7 +574,7 @@ function viewSugg() {
     </div>
     <form class="card stack" data-form="sugg">
       <h3>Kitap öner</h3>
-      <p class="muted small">Okumak istediğin kitapları ekle, beğendiklerinize kalp verin. Sırası gelen kişi en çok kalp alanlardan seçebilir.</p>
+      <p class="muted small">Okumak istediğin kitapları ekle, beğendiklerinize kalp verin. Kapak, sayfa sayısı ve tanıtım otomatik bulunur. Okumaya karar verince "Kitaplığa ekle" ile bütün bilgileriyle kitaplığa geçer.</p>
       <label>Kitap adı<input id="sg-title" name="title" required autocomplete="off" data-draft></label>
       <label>Yazar<input id="sg-author" name="author" autocomplete="off" data-draft></label>
       <label>Neden bu kitap?<textarea id="sg-why" name="why" rows="3" data-draft></textarea></label>
@@ -649,9 +689,40 @@ function tabGeneral(b, id) {
         <h3>Okuma durumu</h3>
         <ul class="prog">${members().map(n => progRow(b, n)).join('')}</ul>
       </section>
-      ${readerCard(b, id)} <section class="card"><button type="button" class="btn ghost sm" data-act="del" data-col="books" data-id="${id}">${S.armed === b.id ? 'Emin misin? Tekrar tıkla' : 'Kitabı sil'}</button></section>
+      ${readerCard(b, id)}
+      ${S.editBook === b.id ? bookEditForm(b, id) : `<section class="card"><div class="actions">
+        <button type="button" class="btn ghost sm" data-act="edit" data-id="${id}">Kitabı düzenle</button>
+        <button type="button" class="btn ghost sm" data-act="del" data-col="books" data-id="${id}">${S.armed === b.id ? 'Emin misin? Tekrar tıkla' : 'Kitabı sil'}</button>
+      </div></section>`}
     </div>
   </div>`;
+}
+
+// Kitabın künyesini tek formdan düzenleme (ad, yazar, seçen, ay, durum ve yayın bilgileri)
+function bookEditForm(b, id) {
+  const info = b.info || {};
+  const field = (label, name, value, type = 'text') => `<label>${label}<input id="be-${name}" name="${name}" type="${type}" value="${esc(value || '')}" autocomplete="off"${type === 'number' ? ' min="1" inputmode="numeric"' : ''}></label>`;
+  return `
+  <form class="card stack" id="book-edit" data-form="bookedit" data-id="${id}">
+    <h3>Kitabı düzenle</h3>
+    ${field('Kitabın adı', 'title', b.title)}
+    <div class="row2">${field('Yazar', 'author', b.author)}${field('Orijinal ad', 'originalTitle', info.originalTitle)}</div>
+    <div class="row2">
+      <label>Seçen<select id="be-pickedBy" name="pickedBy"><option value="">Seçilmedi</option>${members().map(n => `<option${b.pickedBy === n ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+      ${field('Ay', 'month', b.month, 'month')}
+    </div>
+    <div class="row2">
+      <label>Durum<select id="be-status" name="status">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${(b.status || 'okunuyor') === k ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
+      ${field('Sayfa sayısı', 'pages', info.pages, 'number')}
+    </div>
+    <div class="row2">${field('Yayınevi', 'publisher', info.publisher)}${field('İlk yayın yılı', 'year', info.year, 'number')}</div>
+    ${field('Tür', 'genre', info.genre)}
+    <div class="actions">
+      <button class="btn sm" type="submit">Kaydet</button>
+      <button type="button" class="btn ghost sm" data-act="edit-cancel">Vazgeç</button>
+      <button type="button" class="btn ghost sm" data-act="del" data-col="books" data-id="${id}">${S.armed === b.id ? 'Emin misin? Tekrar tıkla' : 'Kitabı sil'}</button>
+    </div>
+  </form>`;
 }
 
 // StoryGraph-style reader profile: each member tags mood, pace and focus; the club view is the share of members per tag.
@@ -862,10 +933,13 @@ function render() {
   }
 }
 
+// Her sayfa geçişi tarayıcı geçmişine yazılır; böylece geri tuşu siteden çıkmak yerine önceki sayfaya döner.
 function go(view, extra = {}) {
-  Object.assign(S, { view }, extra);
-  const h = view === 'kitap' ? 'kitap-' + S.bookId : view;
-  try { history.replaceState(null, '', '#' + h); } catch (err) {}
+  Object.assign(S, { view, editBook: null }, extra);
+  const h = '#' + (view === 'kitap' ? 'kitap-' + S.bookId : view);
+  try {
+    if (location.hash !== h) history.pushState(null, '', h);
+  } catch (err) {}
   window.scrollTo(0, 0);
   render();
 }
@@ -873,9 +947,10 @@ function readHash() {
   const h = decodeURIComponent((location.hash || '').slice(1));
   if (h.startsWith('kitap-')) { S.view = 'kitap'; S.bookId = h.slice(6); S.tab = 'genel'; }
   else if (VIEWS.some(([k]) => k === h)) S.view = h;
+  else if (!h) S.view = 'buay';
 }
 readHash();
-window.addEventListener('hashchange', () => { readHash(); render(); });
+window.addEventListener('popstate', () => { readHash(); S.editBook = null; render(); window.scrollTo(0, 0); });
 
 /* ---------- data ---------- */
 function ensureNotes(id) {
@@ -895,11 +970,12 @@ async function takePhoto(file) {
   render();
 }
 
-async function newBook({ title, author, pickedBy, month }, photo) {
+async function newBook({ title, author, pickedBy, month }, photo, extra = {}) {
   const data = {
     title, author, pickedBy, month: month || thisMonth(), status: 'okunuyor',
     meetingDate: '', meetingTime: '', meetingPlace: '', host: '',
     ratings: {}, progress: {}, attended: {}, rsvp: {}, at: nowISO(),
+    ...extra,
   };
   if (photo) { try { data.coverData = await shrink(photo); } catch (e) { toast('Resim okunamadı, kapak sonra eklenebilir.'); } }
   const ref = await db.add('books', data);
@@ -940,8 +1016,14 @@ async function adopt(sid) {
   const s = S.sugg.find(x => x.id === sid);
   if (!s) return;
   try {
-    const ref = await newBook({ title: s.title, author: s.author || '', pickedBy: nextPicker(), month: thisMonth() });
+    // Önerideki kapak, künye ve tanıtım kitaplığa taşınır; kitap "Sırada" olarak başlar.
+    const extra = { status: 'sirada', info: s.info || {}, coverUrl: s.coverUrl || '', coverData: s.coverData || '' };
+    if (s.lookupAt) extra.lookupAt = s.lookupAt;
+    const ref = await newBook({ title: s.title, author: s.author || '', pickedBy: nextPicker(), month: thisMonth() }, null, extra);
+    if (s.desc) await db.add('books/' + ref.id + '/notes', { kind: 'info', by: 'Google Books', auto: true, text: 'Tanıtım: ' + s.desc, at: nowISO() });
+    if (s.why) await db.add('books/' + ref.id + '/notes', { kind: 'own', by: s.by, text: 'Neden önerdim: ' + s.why, pct: 0, at: nowISO() });
     await db.patch('suggestions', sid, { adoptedBookId: ref.id });
+    toast('Kitaplığa eklendi');
   } catch (err) { fail(err); }
 }
 
@@ -990,6 +1072,14 @@ document.addEventListener('click', e => {
       break;
     }
     case 'tstart': startTimer2(document.getElementById('timer-book') ? document.getElementById('timer-book').value : ''); break; case 'tstop': stopTimer2(); break; case 'treset': resetTimer2(); break; case 'msave': saveMusic(); break; case 'gsave': saveGoal(); break; case 'generic': addGeneric(id); break;
+    case 'edit': {
+      S.editBook = id;
+      render();
+      const form = document.getElementById('book-edit');
+      if (form) { form.scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById('be-title').focus({ preventScroll: true }); }
+      break;
+    }
+    case 'edit-cancel': S.editBook = null; render(); break;
     case 'vstart': startVoice(); break;
     case 'vstop': stopVoice(); break;
     case 'find': findCovers(id); break;
@@ -1080,6 +1170,19 @@ document.addEventListener('submit', async e => {
       await newBook(data, photo);
       return;
     }
+    if (kind === 'bookedit') {
+      const title = f.title.value.trim();
+      if (!title) return toast('Kitabın adı boş olamaz.');
+      const num = el => Number(el.value) || null;
+      await db.patch('books', form.dataset.id, {
+        title, author: f.author.value.trim(), pickedBy: f.pickedBy.value, month: f.month.value, status: f.status.value,
+        info: { originalTitle: f.originalTitle.value.trim(), pages: num(f.pages), publisher: f.publisher.value.trim(), year: num(f.year), genre: f.genre.value.trim() },
+      });
+      S.editBook = null;
+      render();
+      toast('Kitap güncellendi');
+      return;
+    }
     if (kind === 'sugg') {
       const title = f.title.value.trim();
       if (!title) return;
@@ -1121,7 +1224,7 @@ async function login() {
 
 function startData() {
   subs.push(db.watch('books', list => { S.books = list; S.loaded = true; render(); lookupNext(); }));
-  subs.push(db.watch('suggestions', list => { S.sugg = list; render(); }));
+  subs.push(db.watch('suggestions', list => { S.sugg = list; render(); lookupSuggNext(); }));
 }
 function stopData() {
   while (subs.length) { try { subs.pop()(); } catch (e) {} }
