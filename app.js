@@ -394,98 +394,120 @@ function viewLogin() {
 }
 const googleG = () => '<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="stroke:none"><path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3zM12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22zM6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9zM12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.8 9.4 6 12 6z"/></svg>';
 
+// Ana sayfa: kapağın renginden beslenen koyu "sahne", altında bento kutular, alıntı şeridi, raf ve zaman çizelgesi
+const coverVT = b => `view-transition-name:c-${String(b.id).replace(/[^A-Za-z0-9_-]/g, '')}`;
+const ringAvatar = (name, pct) => `<span class="ravatar" style="--p:${pct};--c:${colorOf(name)}" title="${esc(name)}: %${pct}">${avatar(name)}</span>`;
+function bigRing(pct, label) {
+  return `<div class="bigring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" class="br-track"/><circle cx="60" cy="60" r="50" class="br-fill" pathLength="100" style="stroke-dashoffset:${100 - pct}"/></svg><div class="br-t"><b><span data-count="${pct}">${pct}</span>%</b><span>${esc(label)}</span></div></div>`;
+}
+function railItem(b) {
+  const a = avgRating(b);
+  return `<button type="button" class="rail-item tilt" data-act="open" data-id="${esc(b.id)}">
+    <span class="rail-cover" style="${coverVT(b)}">${coverHTML(b)}</span>
+    <span class="bc-t">${esc(b.title)}</span>
+    <span class="bc-a">${esc(b.author || '—')}</span>
+    <span class="bc-m"><span class="pill s-${esc(b.status || 'okunuyor')}">${esc(STATUS[b.status] || 'Okunuyor')}</span>${a ? stars(a) : ''}</span>
+  </button>`;
+}
+function quoteMarquee(b) {
+  const club = (S.notes[b.id] || []).filter(n => kindOf(n) === 'quote' && !n.spoiler && !aheadOfMe(n, b)).map(n => [n.text, n.by + ' · ' + b.title]);
+  const favs = members().map(n => [((S.profiles || {})[slug(n)] || {}).quote, n + ' · en sevdiği alıntı']).filter(([t]) => t);
+  const all = [...club, ...favs].filter(([t]) => t && t.length < 260);
+  if (!all.length) return '';
+  let items = all;
+  while (items.length < 6) items = items.concat(all);
+  const html = items.map(([t, who]) => `<figure class="mq-item"><blockquote>“${esc(t)}”</blockquote><figcaption>${esc(who)}</figcaption></figure>`).join('');
+  return `<section class="marquee" aria-label="Alıntılar"><div class="mq-track">${html}${html}</div></section>`;
+}
 function viewHome() {
   const b = currentBook();
   if (!b) return `<div class="page-head"><h1>Bu ay</h1></div><div class="card empty"><h2>Henüz kitap yok</h2><p class="muted">İlk kitabınızı Kitaplık'tan ekleyin.</p><button type="button" class="btn accent" data-act="nav" data-view="kitaplik">Kitaplığa git</button></div>`;
   ensureNotes(b.id);
+  ensureProfiles();
   const id = esc(b.id);
   const d = b.meetingDate ? daysUntil(b.meetingDate) : null;
   const ms = members();
   const np = nextPicker();
   const info = b.info || {};
-  const themes = (info.themes || []).slice(0, 4).map(t => `<span class="chip">${esc(t)}</span>`).join('');
   const meta = [info.year, info.pages ? info.pages + ' sayfa' : '', info.genre].filter(Boolean).map(esc).join(' · ');
-  const avgP = Math.round(ms.reduce((s, n) => s + ((b.progress || {})[slug(n)] || 0), 0) / ms.length);
+  const pct = n => (b.progress || {})[slug(n)] || 0;
+  const avgP = Math.round(ms.reduce((s, n) => s + pct(n), 0) / ms.length);
   const top = S.sugg.filter(s => !s.adoptedBookId).sort((x, y) => voteCount(y) - voteCount(x))[0];
-  const feed = (S.notes[b.id] || []).filter(n => !n.auto && ['own', 'quote', 'meeting'].includes(kindOf(n))).slice(-4).reverse();
-  const later = S.books.filter(x => x.id !== b.id && (x.status || 'okunuyor') !== 'tamamlandi' && (x.month || '') >= (b.month || '')).sort((x, y) => (x.month || '').localeCompare(y.month || ''));
+  const feed = (S.notes[b.id] || []).filter(n => !n.auto && ['own', 'quote', 'meeting'].includes(kindOf(n))).slice(-5).reverse();
+  const others = sortedBooks().filter(x => x.id !== b.id);
+  const src = coverSrc(b);
+  const bg = src ? `background-image:url('${esc(src)}')` : `background:hsl(${hash(b.title || '') % 360} 35% 35%)`;
   return `
-  <div class="page-head"><div><p class="label">${esc(b.month ? monthTR(b.month) : 'Bu ay')}</p><h1>Şu an okuduğumuz</h1></div></div>
-  <section class="hero">
-    ${glowHTML(b)}
-    ${coverHTML(b, 'lg')}
-    <div class="hero-body">
-      <div class="hb-text">
-        <h2 class="hero-title">${esc(b.title)}</h2>
-        <p class="hero-author">${esc(b.author || '')}</p>
-        <div class="meta">${b.pickedBy ? `<span>${avatar(b.pickedBy, 'sm')}${esc(b.pickedBy)} seçti</span>` : ''}${meta ? `<span>${meta}</span>` : ''}</div>
-      </div>
-      ${themes ? `<div class="chips">${themes}</div>` : ''}
+  <section class="stage">
+    <div class="stage-bg" style="${bg}"></div>
+    <div class="stage-cover tilt" style="${coverVT(b)}">${coverHTML(b, 'lg')}</div>
+    <div class="stage-text">
+      <p class="eyebrow">${esc(b.month ? monthTR(b.month) : 'Bu ay')} · Şu an okuduğumuz</p>
+      <h1 class="display">${esc(b.title)}</h1>
+      <p class="stage-author">${esc(b.author || '')}</p>
+      <p class="stage-meta">${b.pickedBy ? `${esc(b.pickedBy)} seçti` : ''}${b.pickedBy && meta ? ' · ' : ''}${meta}</p>
+      <div class="stage-readers">${ms.map(n => `<span class="sr-one">${ringAvatar(n, pct(n))}<span><b>${esc(n)}</b><small>%${pct(n)}</small></span></span>`).join('')}</div>
       <div class="actions">
-        <button type="button" class="btn accent" data-act="open" data-id="${id}">Kitabın sayfası</button>
-        <button type="button" class="btn ghost" data-act="open" data-id="${id}" data-tab="soru">Tartışma soruları</button>
+        <button type="button" class="btn" data-act="open" data-id="${id}">Kitabın sayfası</button>
+        <button type="button" class="btn glass" data-act="open" data-id="${id}" data-tab="soru">Tartışma soruları</button>
       </div>
     </div>
   </section>
-  <div class="grid3">
-    <section class="card">
-      <h3>${icon('cal')}Toplantı</h3>
+  <div class="bento">
+    <section class="tile tile-meet">
+      <p class="eyebrow-dark">${icon('cal')}Toplantı</p>
       ${b.meetingDate ? `
-        <p class="big">${d > 0 ? d + '<small>gün kaldı</small>' : d === 0 ? 'Bugün' : 'Yapıldı'}</p>
-        <div class="facts-inline">
-          <span>${icon('cal')}${esc(dateTR(b.meetingDate, { weekday: 'long', day: 'numeric', month: 'long' }))}</span>
-          ${b.meetingTime ? `<span>${icon('clock')}${esc(b.meetingTime)}</span>` : ''}
-          ${b.meetingPlace ? `<span>${icon('pin')}${esc(b.meetingPlace)}</span>` : ''}
-          ${b.host ? `<span>${icon('house')}Ev sahibi: ${esc(b.host)}</span>` : ''}
-        </div>
+        <p class="mega">${d > 0 ? `<span data-count="${d}">${d}</span><small>gün kaldı</small>` : d === 0 ? 'Bugün!' : 'Yapıldı'}</p>
+        <p class="tile-line">${esc(dateTR(b.meetingDate, { weekday: 'long', day: 'numeric', month: 'long' }))}${b.meetingTime ? ' · ' + esc(b.meetingTime) : ''}${b.meetingPlace ? ' · ' + esc(b.meetingPlace) : ''}</p>
         ${d >= 0 ? rsvpBlock(b) : ''}
-        <div class="actions" style="margin-top:14px">
-          <a class="btn ghost sm" href="${esc(calendarLink(b))}" target="_blank" rel="noopener">${icon('cal')}Takvime ekle</a>
-          <button type="button" class="linkbtn" data-act="open" data-id="${id}" data-tab="toplanti">Düzenle</button>
-        </div>` : `
-        <p class="muted">Tarih henüz belli değil.</p>
-        <div class="actions" style="margin-top:12px"><button type="button" class="btn ghost sm" data-act="open" data-id="${id}" data-tab="toplanti">${icon('plus')}Tarih ve yer ekle</button></div>`}
+        <div class="actions" style="margin-top:14px"><a class="btn ghost sm" href="${esc(calendarLink(b))}" target="_blank" rel="noopener">${icon('cal')}Takvime ekle</a><button type="button" class="linkbtn" data-act="open" data-id="${id}" data-tab="toplanti">Düzenle</button></div>`
+      : `<p class="mega mega-soft">Tarih yok</p><p class="tile-line">Buluşma günü henüz belli değil.</p><div class="actions" style="margin-top:12px"><button type="button" class="btn ghost sm" data-act="open" data-id="${id}" data-tab="toplanti">${icon('plus')}Tarih ve yer ekle</button></div>`}
     </section>
-    <section class="card">
-      <h3>${icon('books')}Okuma durumu <span class="count pct">ort. %${avgP}</span></h3>
-      <ul class="prog">${ms.map(n => progRow(b, n)).join('')}</ul>
+    <section class="tile tile-prog">
+      <p class="eyebrow-dark">${icon('books')}Kulübün ilerlemesi</p>
+      ${bigRing(avgP, 'ortalama')}
+      <ul class="prog compact">${ms.map(n => progRow(b, n)).join('')}</ul>
     </section>
-    <section class="card">
-      <h3>${icon('spark')}Sıradaki seçen</h3>
-      <div class="next">${avatar(np, 'lg')}<div><p class="big" style="font-size:28px">${esc(np)}</p><p class="small muted">bir sonraki kitabı seçecek</p></div></div>
+    <section class="tile tile-next">
+      <p class="eyebrow-dark">${icon('spark')}Sıradaki seçen</p>
+      <div class="next">${avatar(np, 'lg')}<div><p class="next-name">${esc(np)}</p><p class="small muted">bir sonraki kitabı seçecek</p></div></div>
       <p class="order">${ms.map(n => `<span class="${n === np ? 'on' : ''}">${esc(n)}</span>`).join('<span>→</span>')}</p>
-      ${later.length ? `<p class="small muted" style="margin-top:10px">Planlanan: ${later.map(x => `<button type="button" class="linkbtn" style="font-size:13px" data-act="open" data-id="${esc(x.id)}">${esc(x.title)}</button>${x.month ? ' (' + esc(monthTR(x.month)) + ')' : ''}`).join(', ')}</p>` : ''}
       ${top ? `<button type="button" class="toppick" data-act="nav" data-view="oneriler"><span class="label">En çok oy alan öneri</span><b>${esc(top.title)}</b><span class="small muted">${esc(top.author || '')} · ${voteCount(top)} oy</span></button>` : ''}
     </section>
   </div>
-  <section class="card">
-    <h3>${icon('chat')}Kulüpte son yazılanlar</h3>
-    ${feed.length ? `<ul class="feed">${feed.map(n => {
+  ${quoteMarquee(b)}
+  ${others.length ? `<section class="rail-section">
+    <div class="rail-head"><h2 class="sec-title">Rafımızda</h2><button type="button" class="linkbtn" data-act="nav" data-view="kitaplik">Tüm kitaplık →</button></div>
+    <div class="rail">${others.map(railItem).join('')}</div>
+  </section>` : ''}
+  <section class="timeline-section">
+    <h2 class="sec-title">Kulüpte son yazılanlar</h2>
+    ${feed.length ? `<ol class="timeline">${feed.map(n => {
       const hide = (n.spoiler || aheadOfMe(n, b)) && !S.reveal.has(n.id);
       const k = kindOf(n);
-      return `<li>${avatar(n.by)}<div style="min-width:0"><p class="small"><strong>${esc(n.by)}</strong> <span class="muted">${k === 'quote' ? 'bir alıntı ekledi' : k === 'meeting' ? 'toplantı notu yazdı' : 'not yazdı'} · ${esc(dateTR(n.at, { day: 'numeric', month: 'short' }))}</span></p>
+      return `<li style="--c:${colorOf(n.by)}">${avatar(n.by)}<div class="tl-body"><p class="small"><strong>${esc(n.by)}</strong> <span class="muted">${k === 'quote' ? 'bir alıntı ekledi' : k === 'meeting' ? 'toplantı notu yazdı' : n.audio ? 'ses notu bıraktı' : 'not yazdı'} · ${esc(dateTR(n.at, { day: 'numeric', month: 'short' }))}</span></p>
         ${hide ? `<button type="button" class="linkbtn small" data-act="open" data-id="${id}" data-tab="${k === 'quote' ? 'alinti' : k === 'meeting' ? 'toplanti' : 'once'}">Spoiler olabilir, kitabın sayfasında aç</button>` : `<p class="ft${k === 'quote' ? ' q' : ''}">${k === 'quote' ? '“' + esc(n.text) + '”' : esc(n.text)}</p>`}</div></li>`;
-    }).join('')}</ul>` : `<p class="muted">Henüz not yok. Okurken aklına geleni <button type="button" class="linkbtn" data-act="open" data-id="${id}" data-tab="once">Toplantı öncesi</button> bölümüne, sevdiğin cümleleri <button type="button" class="linkbtn" data-act="open" data-id="${id}" data-tab="alinti">Alıntılar</button>'a ekle.</p>`}
+    }).join('')}</ol>` : `<p class="muted">Henüz not yok. Okurken aklına geleni <button type="button" class="linkbtn" data-act="open" data-id="${id}" data-tab="once">Toplantı öncesi</button> bölümüne, sevdiğin cümleleri <button type="button" class="linkbtn" data-act="open" data-id="${id}" data-tab="alinti">Alıntılar</button>'a ekle.</p>`}
   </section>`;
 }
 
+// Kitaplık: duruma göre yana kayan raflar; her rafın altında ahşap bir pervaz
+const SHELVES = [['okunuyor', 'Şu an okuduklarımız'], ['sirada', 'Sırada bekleyenler'], ['tamamlandi', 'Okuduklarımız'], ['birakildi', 'Yarım bıraktıklarımız']];
 function viewLibrary() {
   const ms = members();
   const done = S.books.filter(b => b.status === 'tamamlandi');
   const pages = done.reduce((s, b) => s + pagesOf(b), 0);
   const rated = S.books.map(b => [b, avgRating(b)]).filter(([, a]) => a > 0).sort((x, y) => y[1] - x[1]);
   const clubAvg = rated.length ? rated.reduce((s, [, a]) => s + a, 0) / rated.length : 0;
-  const f = S.shelfFilter;
-  const list = sortedBooks().filter(b => f === 'all' || (b.status || 'okunuyor') === f);
-  const count = k => S.books.filter(b => (b.status || 'okunuyor') === k).length;
-  const shelf = list.map(b => {
-    const a = avgRating(b);
-    return `<button type="button" class="bcard" data-act="open" data-id="${esc(b.id)}">
-      ${coverHTML(b)}
-      <span class="bc-t">${esc(b.title)}</span>
-      <span class="bc-a">${esc(b.author || '—')}</span>
-      <span class="bc-m"><span class="pill s-${esc(b.status || 'okunuyor')}">${esc(STATUS[b.status] || 'Okunuyor')}</span>${b.month ? esc(monthTR(b.month)) : ''}${a ? stars(a) : ''}</span>
-    </button>`;
+  const rows = SHELVES.map(([k, title]) => {
+    const list = sortedBooks().filter(b => (b.status || 'okunuyor') === k);
+    const add = k === 'sirada' && !S.showAdd ? `<button type="button" class="addcard rail-add" data-act="toggle-add">${icon('plus')}Kitap ekle</button>` : '';
+    if (!list.length && !add) return '';
+    return `<section class="shelf-row">
+      <div class="rail-head"><h2 class="sec-title">${title} <span class="count">${list.length}</span></h2></div>
+      <div class="rail shelf-rail">${list.map(railItem).join('')}${add}</div>
+      <div class="ledge" aria-hidden="true"></div>
+    </section>`;
   }).join('');
   return `
   <div class="page-head">
@@ -493,23 +515,14 @@ function viewLibrary() {
     <button type="button" class="btn accent" data-act="toggle-add">${S.showAdd ? 'Kapat' : icon('plus') + 'Yeni kitap'}</button>
   </div>
   ${S.showAdd ? addForm() : ''}
-  <div class="stats">
-    <div class="stat"><b>${done.length}</b><span>Bitirilen kitap</span></div>
-    <div class="stat"><b>${pages ? pages.toLocaleString('tr-TR') : '–'}</b><span>Okunan sayfa</span></div>
-    <div class="stat"><b>${clubAvg ? clubAvg.toFixed(1) : '–'}</b><span>Kulüp puan ortalaması</span></div>
-    <div class="stat"><b class="t">${rated.length ? esc(rated[0][0].title) : '–'}</b><span>En sevilen</span></div>
+  <div class="numbers">
+    <div><b data-count="${done.length}">${done.length}</b><span>bitirilen kitap</span></div>
+    <div><b data-count="${pages}">${pages ? pages.toLocaleString('tr-TR') : '0'}</b><span>okunan sayfa</span></div>
+    <div><b${clubAvg ? ` data-count="${clubAvg.toFixed(1)}" data-dec="1"` : ''}>${clubAvg ? clubAvg.toFixed(1).replace('.', ',') : '–'}</b><span>kulüp puan ortalaması</span></div>
+    <div><b class="t">${rated.length ? esc(rated[0][0].title) : '–'}</b><span>en sevilen</span></div>
   </div>
-  <div class="toolbar">
-    <div class="filters" role="group" aria-label="Duruma göre süz">
-      ${[['all', 'Tümü', S.books.length], ['okunuyor', 'Okunuyor', count('okunuyor')], ['sirada', 'Sırada', count('sirada')], ['tamamlandi', 'Tamamlandı', count('tamamlandi')]]
-        .map(([k, l, c]) => `<button type="button" class="${f === k ? 'on' : ''}" data-act="shelf" data-f="${k}" aria-pressed="${f === k}">${l} ${c}</button>`).join('')}
-    </div>
-    <div class="picks">${ms.map(n => `<span>${avatar(n, 'sm')}${esc(n)} <b>${S.books.filter(b => b.pickedBy === n).length}</b> seçim</span>`).join('')}</div>
-  </div>
-  <div class="shelf">
-    ${shelf}
-    ${S.showAdd ? '' : `<button type="button" class="addcard" data-act="toggle-add">${icon('plus')}Kitap ekle</button>`}
-  </div>`;
+  <p class="picks">${ms.map(n => `<span>${avatar(n, 'sm')}${esc(n)} <b>${S.books.filter(b => b.pickedBy === n).length}</b> seçim</span>`).join('')}</p>
+  ${rows}`;
 }
 
 function addForm() {
@@ -599,7 +612,7 @@ function viewBook() {
   <nav class="crumbs"><button type="button" data-act="back">${icon('back')}Kitaplık</button><span>/</span><span>${esc(b.title)}</span></nav>
   <section class="hero">
     ${glowHTML(b)}
-    ${coverHTML(b, 'lg')}
+    <div class="hero-cover tilt" style="${coverVT(b)}">${coverHTML(b, 'lg')}</div>
     <div class="hero-body">
       <div class="hb-text">
         <div class="meta"><span class="pill s-${esc(b.status || 'okunuyor')}">${esc(STATUS[b.status] || 'Okunuyor')}</span>${b.month ? `<span>${esc(monthTR(b.month))}</span>` : ''}</div>
@@ -932,6 +945,7 @@ function render() {
       if (sel) { try { el.setSelectionRange(sel[0], sel[1]); } catch (e) {} }
     }
   }
+  enhance(view);
 }
 
 // Her sayfa geçişi tarayıcı geçmişine yazılır; böylece geri tuşu siteden çıkmak yerine önceki sayfaya döner.
@@ -942,8 +956,7 @@ function go(view, extra = {}) {
   try {
     if (location.hash !== h) history.pushState(null, '', h);
   } catch (err) {}
-  window.scrollTo(0, 0);
-  render();
+  pageChange(() => { window.scrollTo(0, 0); render(); });
 }
 function readHash() {
   const h = decodeURIComponent((location.hash || '').slice(1));
@@ -956,8 +969,7 @@ window.addEventListener('popstate', () => {
   readHash();
   S.editBook = null;
   if (S.view !== 'zamanlayici') document.body.classList.remove('focus-mode');
-  render();
-  window.scrollTo(0, 0);
+  pageChange(() => { render(); window.scrollTo(0, 0); });
 });
 
 /* ---------- data ---------- */
@@ -1272,7 +1284,8 @@ function init() {
     render();
   });
 }
-init();
+// Dosyanın sonundaki sabitler (illüstrasyonlar, hareket sistemi) tanımlandıktan sonra başlasın
+queueMicrotask(init);
 
 // Exposed for the one-time move from the old Claude page (see README).
 window.kulupImport = async (url = 'tasima.json') => {
@@ -1524,6 +1537,7 @@ ${goal ? `<div class="bar goal"><span style="width:${pct}%"></span></div><p clas
 ${reading.length ? `<ul class="prog">${reading.map(b => { const p = (b.progress || {})[key] || 0; return `<li style="--c:${colorOf(who)}"><div class="prow"><button type="button" class="linkbtn" data-act="open" data-id="${esc(b.id)}">${esc(b.title)}</button><span class="pct"><b>%${p}</b></span></div><div class="bar"><span style="width:${p}%"></span></div></li>`; }).join('')}</ul>` : '<p class="muted small">Şu an okunan kitap yok.</p>'}
 </section>
 </div>
+${badgesHTML(who)}
 <div class="cols even">
 <section class="card"><h3>Kulübe seçtiği kitaplar <span class="count">${picked.length}</span></h3>${picked.length ? `<ul class="feed">${picked.map(bookRow).join('')}</ul>` : '<p class="muted small">Henüz kitap seçmemiş.</p>'}</section>
 <section class="card"><h3>Puanladıkları</h3>${rated.length ? `<ul class="feed">${rated.map(([b, r]) => `<li><button type="button" class="linkbtn" data-act="open" data-id="${esc(b.id)}">${esc(b.title)}</button>${stars(r)}</li>`).join('')}</ul>` : '<p class="muted small">Henüz puan vermemiş.</p>'}</section>
@@ -1678,6 +1692,7 @@ ${recapCard2(mine)}
 <div class="stat"><span>Son 30 gün</span><b>${active30} gün</b></div>
 <div class="stat"><span>Okunan günlerde ort.</span><b>${active30 ? dk2(total30 / active30) : '–'}</b></div>
 </div>
+<section class="card chart30"><h3>Son 30 gün</h3>${chart30(byDay)}</section>
 <section class="card"><h3>Son ${HEAT_WEEKS} hafta</h3>
 <div class="heat-wrap"><div class="heat-days">${WEEKDAYS2.map((d, i) => `<span>${i % 2 ? '' : d}</span>`).join('')}</div><div class="heat">${cells}</div></div>
 <div class="heat-legend">Az<i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>Çok</div>
@@ -1842,3 +1857,121 @@ function setFocusMode(on) {
 }
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) document.body.classList.remove('focus-mode'); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('focus-mode')) setFocusMode(false); });
+
+// Hareket sistemi: sayfa geçişi (View Transitions), kaydırınca beliren bölümler, sayarak artan rakamlar, eğilen kapaklar.
+// Yalnızca sayfa değişince ya da ilk açılışta oynar; veri güncellenip sayfa yeniden çizilince her şey olduğu yerde kalır.
+var ANIM_NEXT = false, FIRST_ANIM_DONE = false, REVEAL_IO = null;
+function reduceMotion() { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+function pageChange(run) {
+  ANIM_NEXT = true;
+  if (document.startViewTransition && !reduceMotion()) document.startViewTransition(run);
+  else run();
+}
+const REVEAL_SEL = '.stage-text > *, .stage-cover, .tile, .card, .rail-section, .shelf-row, .numbers > div, .timeline li, .stats .stat, .marquee, .page-head, .rozet, .chart30';
+function enhance(root) {
+  const first = !FIRST_ANIM_DONE && S.loaded;
+  if (!(ANIM_NEXT || first) || reduceMotion()) { ANIM_NEXT = false; return; }
+  ANIM_NEXT = false;
+  if (first) FIRST_ANIM_DONE = true;
+  const counts = new Map();
+  const els = [...root.querySelectorAll(REVEAL_SEL)];
+  els.forEach(el => {
+    const i = counts.get(el.parentElement) || 0;
+    counts.set(el.parentElement, i + 1);
+    el.classList.add('rv');
+    el.style.setProperty('--i', Math.min(i, 8));
+  });
+  if (!REVEAL_IO && 'IntersectionObserver' in window) {
+    REVEAL_IO = new IntersectionObserver(entries => entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('in'); REVEAL_IO.unobserve(e.target); }
+    }), { rootMargin: '0px 0px -6% 0px' });
+  }
+  els.forEach(el => (REVEAL_IO ? REVEAL_IO.observe(el) : el.classList.add('in')));
+  root.querySelectorAll('[data-count]').forEach(el => {
+    const to = parseFloat(el.dataset.count);
+    if (!isFinite(to)) return;
+    const dec = Number(el.dataset.dec || 0);
+    const fmt = v => v.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    const t0 = performance.now();
+    const step = now => {
+      const k = Math.min(1, (now - t0) / 1100);
+      el.textContent = fmt(to * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    el.textContent = fmt(0);
+    requestAnimationFrame(step);
+  });
+}
+if (window.matchMedia && matchMedia('(hover: hover)').matches) {
+  let tiltEl = null;
+  document.addEventListener('pointermove', e => {
+    const el = e.target.closest ? e.target.closest('.tilt') : null;
+    if (tiltEl && tiltEl !== el) { tiltEl.style.removeProperty('--rx'); tiltEl.style.removeProperty('--ry'); }
+    tiltEl = el;
+    if (!el || reduceMotion()) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--ry', (((e.clientX - r.left) / r.width - 0.5) * 16).toFixed(2) + 'deg');
+    el.style.setProperty('--rx', ((0.5 - (e.clientY - r.top) / r.height) * 10).toFixed(2) + 'deg');
+  }, { passive: true });
+}
+// Takip: son 30 günün dakikaları, yumuşak eğri + degrade alan; çizgi ekrana girince çizilerek gelir
+function chart30(byDay) {
+  const n = 30, W = 640, H = 190, P = 18;
+  const days = [...Array(n)].map((_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (n - 1 - i)); return d; });
+  const vals = days.map(d => Math.round((byDay[dayKey2(d)] || 0) / 60));
+  const max = Math.max(30, ...vals);
+  const pts = vals.map((v, i) => [P + i * (W - 2 * P) / (n - 1), H - P - v / max * (H - 2 * P)]);
+  let line = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [p0, p1, p2, p3] = [pts[i - 1] || pts[i], pts[i], pts[i + 1], pts[i + 2] || pts[i + 1]];
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    line += ` C${c1[0].toFixed(1)},${Math.min(H - P, c1[1]).toFixed(1)} ${c2[0].toFixed(1)},${Math.min(H - P, c2[1]).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  const area = `${line} L${pts[n - 1][0].toFixed(1)},${H - P} L${pts[0][0].toFixed(1)},${H - P} Z`;
+  const active = vals.filter(Boolean);
+  const avg = active.length ? Math.round(active.reduce((a, b) => a + b, 0) / active.length) : 0;
+  const avgY = H - P - avg / max * (H - 2 * P);
+  const best = vals.indexOf(Math.max(...vals));
+  const lbl = d => d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  return `<svg class="c30" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Son 30 günde günlük okuma dakikaları">
+    <defs><linearGradient id="g30" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".35"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+    ${avg ? `<line x1="${P}" x2="${W - P}" y1="${avgY.toFixed(1)}" y2="${avgY.toFixed(1)}" class="c30-avg"/>` : ''}
+    <path d="${area}" fill="url(#g30)" class="c30-area"/>
+    <path d="${line}" class="c30-line" pathLength="1"/>
+    ${vals[best] ? `<circle cx="${pts[best][0].toFixed(1)}" cy="${pts[best][1].toFixed(1)}" r="5" class="c30-dot"/>` : ''}
+    ${pts.map((p, i) => `<rect x="${(p[0] - (W - 2 * P) / (n - 1) / 2).toFixed(1)}" y="0" width="${((W - 2 * P) / (n - 1)).toFixed(1)}" height="${H}" fill="transparent"><title>${lbl(days[i])}: ${vals[i]} dk</title></rect>`).join('')}
+  </svg>
+  <div class="c30-axis"><span>${lbl(days[0])}</span><span>${avg ? 'okuduğun günlerde ortalama ' + avg + ' dk' : ''}</span><span>bugün</span></div>`;
+}
+
+// Rozetler: oturum ve kitap verisinden hesaplanır, kazanılmayanlar soluk görünür
+function badgesFor(name) {
+  const key = slug(name);
+  const mine = (S.sessions || []).filter(s => s.by === key);
+  const total = mine.reduce((a, s) => a + (s.seconds || 0), 0);
+  const hours = s => new Date(s.at).getHours();
+  const longest = longestStreak2([...new Set(mine.map(sessDay2))]);
+  const finished = S.books.filter(b => finishedBy2(b, name)).length;
+  const rated = S.books.filter(b => (b.ratings || {})[key] > 0).length;
+  return [
+    ['🌱', 'İlk adım', 'İlk okuma oturumu', mine.length >= 1],
+    ['🔥', 'Bir hafta', '7 gün üst üste okuma', longest >= 7],
+    ['🌕', 'Bir ay', '30 gün üst üste okuma', longest >= 30],
+    ['⏳', '10 saat', 'Toplam 10 saat okuma', total >= 36000],
+    ['🏔️', '50 saat', 'Toplam 50 saat okuma', total >= 180000],
+    ['🎯', 'Derin odak', '25 dakikadan uzun 10 oturum', mine.filter(s => (s.seconds || 0) >= 1500).length >= 10],
+    ['🌙', 'Gece kuşu', 'Gece 22.00 ile 04.00 arası 5 oturum', mine.filter(s => hours(s) >= 22 || hours(s) < 4).length >= 5],
+    ['☀️', 'Erkenci', 'Sabah 05.00 ile 09.00 arası 5 oturum', mine.filter(s => hours(s) >= 5 && hours(s) < 9).length >= 5],
+    ['📚', 'Kitap kurdu', '5 kitap bitirmek', finished >= 5],
+    ['🗳️', 'Seçici', 'Kulübe 3 kitap seçmek', S.books.filter(b => b.pickedBy === name).length >= 3],
+    ['⭐', 'Eleştirmen', '5 kitaba puan vermek', rated >= 5],
+  ];
+}
+function badgesHTML(name) {
+  const list = badgesFor(name);
+  const won = list.filter(b => b[3]).length;
+  return `<section class="card rozet-card"><h3>Rozetler <span class="count">${won}/${list.length}</span></h3>
+    <div class="rozet-grid">${list.map(([e, t, d, ok]) => `<div class="rozet${ok ? ' won' : ''}" title="${esc(d)}"><span class="bd-ic" aria-hidden="true">${e}</span><b>${esc(t)}</b><small>${esc(d)}</small></div>`).join('')}</div>
+  </section>`;
+}

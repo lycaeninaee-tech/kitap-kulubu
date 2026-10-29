@@ -19,7 +19,7 @@
 - `style.css`: tema değişkenleri `:root` içinde. Dosyanın sonunda lofi dokunuşları, zamanlayıcı ve profil grafiği stilleri var.
 - `config.js`: Firebase ayarları, üyeler, izleyiciler, isteğe bağlı Google Books anahtarı.
 - `kitap-bilgi.json`: kitap sayfasındaki Bilgi ve Yazar sekmeleri için elle yazılmış bilgiler. Anahtar, Firestore'daki kitap id'si.
-- `sw.js`: ağ öncelikli önbellek. Kabuk dosyaları değişince `CACHE` sürümünü artır (şu an `kulup-v7`), yoksa telefonlar eski sürümde kalabilir.
+- `sw.js`: ağ öncelikli önbellek. Kabuk dosyaları değişince `CACHE` sürümünü artır (şu an `kulup-v8`), yoksa telefonlar eski sürümde kalabilir.
 - `manifest.webmanifest`, `icon.svg`: PWA olarak ana ekrana eklenebilir.
 - `tasima.json`: eski Claude artifact'ından taşınan veri. Bir kez içe aktarıldı, artık gerekmiyor.
 
@@ -41,6 +41,10 @@ Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Okuma köşesi (`viewTim
 - Takip sayfasının başında aylık özet kartı (`recapCard2`) var; "Paylaş" (`shareRecap`) özeti 1080x1350 PNG olarak çizip paylaşır ya da indirir.
 - Zamanlayıcıda odak modu (`setFocusMode`) yalnızca `body.focus-mode` sınıfını değiştirir, yeniden çizmez; müzik kesilmez.
 - El çizimi illüstrasyonlar `ILLUS` (cozy, tea, shelf) içinde satır içi SVG. Boş sayfalar `--illus-shelf` CSS değişkenini kullanır.
+- Tasarım sistemi (style.css sonundaki "Seviye 2" bölümü): ana sayfa koyu "sahne" (bulanık kapak arka planı, 3B kapak, dev başlık), bento kutular, kayan alıntı şeridi (`.marquee`), yana kayan raflar (`.rail`, `.ledge`), zaman çizelgesi, büyük rakam şeridi (`.numbers`).
+- Hareket: sayfa geçişleri `pageChange()` ile View Transitions kullanır; kapaklar `view-transition-name: c-<kitapId>` ile sayfalar arasında akar. `enhance()` yalnızca sayfa değişince bölümleri sırayla belirtir (`.rv`/`.in`) ve `data-count` rakamlarını sayarak artırır. "Hareketi azalt" açıksa hiçbiri çalışmaz.
+- Takip'te `chart30` (30 günlük alan grafiği), profilde `badgesHTML` (rozetler; sınıf adı `rozet`, çünkü `.badge` notlardaki etiketlerde kullanılıyor).
+- `init()` `queueMicrotask` ile başlar; dosyanın sonundaki sabitler tanımlanmadan render çalışmasın diye.
 - Gün anahtarları yerel saate göredir (`dayKey2`, `sessDay2`), UTC değil.
 - Ses notları: kitabın "Okumadan önce / okurken" sekmesinde, en çok 30 sn. `MediaRecorder` ile 24 kbit/sn kaydedilir ve not belgesine `audio` (data URL) + `dur` alanlarıyla `kind: 'own'` olarak eklenir.
 
