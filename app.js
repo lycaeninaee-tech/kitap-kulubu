@@ -1090,7 +1090,7 @@ document.addEventListener('click', e => {
     case 'edit-cancel': S.editBook = null; render(); break;
     case 'recapm': S.recapBack = Number(el.dataset.v) || 0; render(); break;
     case 'recapshare': shareRecap().catch(fail); break;
-    case 'focus': setFocusMode(!document.body.classList.contains('focus-mode')); break;
+    case 'focusmode': setFocusMode(!document.body.classList.contains('focus-mode')); break;
     case 'vstart': startVoice(); break;
     case 'vstop': stopVoice(); break;
     case 'find': findCovers(id); break;
@@ -1534,8 +1534,8 @@ ensureProfiles();
 if (!S.me) return `<div class="page-head"><h1>Zamanlayıcı</h1></div><div class="card empty"><p class="muted">Önce kim olduğunu seç.</p></div>`;
 const prof = (S.profiles || {})[slug(S.me)] || {};
 return `
-<div class="page-head"><div><p class="label">Zamanlayıcı</p><h1>Okuma köşesi</h1></div><button type="button" class="btn ghost" data-act="focus">Odak modu</button></div>
-<button type="button" class="focus-exit btn ghost sm" data-act="focus">Odak modundan çık</button>
+<div class="page-head"><div><p class="label">Zamanlayıcı</p><h1>Okuma köşesi</h1></div><button type="button" class="btn ghost" data-act="focusmode">Odak modu</button></div>
+<button type="button" class="focus-exit btn ghost sm" data-act="focusmode">Odak modundan çık</button>
 <div class="cols even timer-page">
 <section class="card" id="timer-card">${timerBody2()}</section>
 <section class="card" id="music-card">${musicCard2(prof.music)}</section>
@@ -1762,7 +1762,7 @@ async function shareRecap() {
   g.fillStyle = '#2e241d'; g.font = '600 120px Fraunces, Georgia, serif';
   g.fillText(hoursText(d.total), 540, 680);
   g.fillStyle = '#8a7a6d'; g.font = '400 40px Inter, sans-serif';
-  g.fillText(S.me + ' bu ay okudu', 540, 750);
+  g.fillText(S.me + (S.recapBack ? ' geçen ay okudu' : ' bu ay okudu'), 540, 750);
   const facts = [['Okunan gün', d.days], ['Oturum', d.sessions], ['En uzun', dk2(d.longest)], ['En sevdiği gün', d.topDay || '–']];
   facts.forEach(([k, v], i) => {
     const x = 300 + (i % 2) * 480, y = 880 + Math.floor(i / 2) * 150;
