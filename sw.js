@@ -1,4 +1,4 @@
-const CACHE = 'kulup-v12';
+const CACHE = 'kulup-v13';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'icon.svg', 'manifest.webmanifest'];
 self.addEventListener('install', e => {
 e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
