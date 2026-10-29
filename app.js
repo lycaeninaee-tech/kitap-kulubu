@@ -1747,44 +1747,44 @@ ${weekGoalCard2(mine, (S.profiles || {})[slug(S.me)] || {})}
 }
 
 // El çizimi illüstrasyonlar: mürekkep çizgisi + birkaç sıcak renk lekesi (Margins esintisi)
-const INK = '#141414';
+const INK = '#1f1a16';
 const ILLUS = {
   // Okuma koltuğu, kıvrılmış kedi, lamba ve kitap yığını
   cozy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M8 136 C60 133 150 138 212 134"/>
-<path d="M58 118 C53 86 58 60 88 57 C116 55 126 64 126 92 L126 118" fill="#ebe2d2"/>
-<path d="M48 104 C66 99 118 99 136 104 C138 113 133 120 126 120 L58 120 C51 120 46 113 48 104Z" fill="#e1d5bf"/>
+<path d="M58 118 C53 86 58 60 88 57 C116 55 126 64 126 92 L126 118" fill="#fbe2d6"/>
+<path d="M48 104 C66 99 118 99 136 104 C138 113 133 120 126 120 L58 120 C51 120 46 113 48 104Z" fill="#f8cdb7"/>
 <path d="M45 94 C37 94 37 108 44 112 L49 118 M139 94 C147 94 147 108 140 112 L135 118"/>
 <path d="M56 120 L53 131 M128 120 L131 131"/>
-<path d="M74 102 C73 89 100 86 106 99 C100 103 80 104 74 102Z" fill="#27276a"/>
+<path d="M74 102 C73 89 100 86 106 99 C100 103 80 104 74 102Z" fill="#f1a47f"/>
 <path d="M98 92 L101 85 L104 93 M92 91 L94 85 L97 91"/>
 <path d="M74 101 C66 100 65 93 72 92"/>
 <path d="M178 131 L178 54 M168 132 C173 128 183 128 188 132"/>
-<path d="M162 54 L194 54 L185 32 L171 32Z" fill="#f3e6c4"/>
+<path d="M162 54 L194 54 L185 32 L171 32Z" fill="#f6e0ae"/>
 <path d="M164 64 L156 74 M178 66 L178 78 M192 64 L200 74" stroke-dasharray="2 4"/>
-<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#27276a"/>
-<path d="M18 123 L42 123 L42 115 L18 115Z" fill="#a9bfa0"/>
-<path d="M15 115 L39 115 L39 107 L15 107Z" fill="#e1d5bf"/>
+<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#e0592f"/>
+<path d="M18 123 L42 123 L42 115 L18 115Z" fill="#7fa38a"/>
+<path d="M15 115 L39 115 L39 107 L15 107Z" fill="#f8cdb7"/>
 <path d="M32 107 C30 100 36 96 40 99"/>
 </svg>`,
   // Buharı tüten çay fincanı ve açık kitap
   tea: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M10 134 C70 131 150 136 210 132"/>
-<path d="M28 126 C46 116 70 116 88 124 C106 116 130 116 148 126 L148 132 C130 124 106 124 88 132 C70 124 46 124 28 132Z" fill="#ffffff"/>
+<path d="M28 126 C46 116 70 116 88 124 C106 116 130 116 148 126 L148 132 C130 124 106 124 88 132 C70 124 46 124 28 132Z" fill="#fbf9f6"/>
 <path d="M88 124 L88 132 M40 122 C52 119 64 119 76 122 M100 122 C112 119 124 119 136 122"/>
-<path d="M150 82 L196 82 C196 108 186 118 173 118 C160 118 150 108 150 82Z" fill="#ebe2d2"/>
+<path d="M150 82 L196 82 C196 108 186 118 173 118 C160 118 150 108 150 82Z" fill="#fbe2d6"/>
 <path d="M196 90 C206 90 206 104 194 106"/>
 <path d="M142 122 C158 127 188 127 204 122"/>
 <path d="M164 72 C158 64 170 58 164 48 M178 72 C172 64 184 58 178 48"/>
-<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#27276a"/>
+<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#e0592f"/>
 </svg>`,
   // Raf, kitaplar ve saksı
   shelf: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M20 120 C80 118 140 121 200 119 M24 120 L24 132 M196 119 L196 131"/>
-<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#27276a"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#e1d5bf"/>
-<path d="M66 119 L66 60 L80 60 L80 119Z" fill="#a9bfa0"/><path d="M84 119 L96 72 L108 75 L97 120Z" fill="#f3e6c4"/>
+<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#e0592f"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#f8cdb7"/>
+<path d="M66 119 L66 60 L80 60 L80 119Z" fill="#7fa38a"/><path d="M84 119 L96 72 L108 75 L97 120Z" fill="#f6e0ae"/>
 <path d="M40 76 L46 76 M70 70 L76 70 M70 108 L76 108"/>
-<path d="M140 119 L136 96 L164 96 L160 119Z" fill="#27276a"/>
+<path d="M140 119 L136 96 L164 96 L160 119Z" fill="#f1a47f"/>
 <path d="M150 96 C146 80 132 76 128 64 M150 96 C152 78 164 74 170 62 M150 96 C150 84 148 72 150 58"/>
 <path d="M126 66 C122 60 130 56 132 62 M168 64 C172 58 178 62 174 66 M148 60 C146 54 154 52 152 58"/>
 </svg>`,
@@ -1852,27 +1852,27 @@ async function shareRecap() {
   c.width = 1080; c.height = 1350;
   const g = c.getContext('2d');
   try { await document.fonts.ready; } catch (e) {}
-  g.fillStyle = '#ebe2d2'; g.fillRect(0, 0, 1080, 1350);
-  g.fillStyle = '#faf8f4';
+  g.fillStyle = '#f2eee8'; g.fillRect(0, 0, 1080, 1350);
+  g.fillStyle = '#fbf9f6';
   g.beginPath(); g.roundRect(60, 60, 960, 1230, 48); g.fill();
   const img = new Image();
   img.src = 'data:image/svg+xml,' + encodeURIComponent(ILLUS.cozy);
   await new Promise(r => { img.onload = r; img.onerror = r; });
   try { g.drawImage(img, 290, 120, 500, 341); } catch (e) {}
   g.textAlign = 'center';
-  g.fillStyle = '#27276a'; g.font = '700 30px Lato, Arial, sans-serif';
+  g.fillStyle = '#e0592f'; g.font = '600 34px Geist, Inter, sans-serif';
   g.fillText('KİTAP KULÜBÜ · ' + d.label.toLocaleUpperCase('tr-TR'), 540, 530);
-  g.fillStyle = '#141414'; g.font = '500 140px "Cormorant Garamond", Georgia, serif';
+  g.fillStyle = '#15120f'; g.font = '400 136px "Instrument Serif", Georgia, serif';
   g.fillText(hoursText(d.total), 540, 680);
-  g.fillStyle = '#6f6a63'; g.font = '400 38px Lato, Arial, sans-serif';
+  g.fillStyle = '#78706a'; g.font = '400 40px Geist, Inter, sans-serif';
   g.fillText(S.me + (S.recapBack ? ' geçen ay okudu' : ' bu ay okudu'), 540, 750);
   const facts = [['Okunan gün', d.days], ['Oturum', d.sessions], ['En uzun', dk2(d.longest)], ['En sevdiği gün', d.topDay || '–']];
   facts.forEach(([k, v], i) => {
     const x = 300 + (i % 2) * 480, y = 880 + Math.floor(i / 2) * 150;
-    g.fillStyle = '#6f6a63'; g.font = '400 28px Lato, Arial, sans-serif'; g.fillText(k, x, y);
-    g.fillStyle = '#141414'; g.font = '500 64px "Cormorant Garamond", Georgia, serif'; g.fillText(String(v), x, y + 64);
+    g.fillStyle = '#78706a'; g.font = '500 30px Geist, Inter, sans-serif'; g.fillText(k, x, y);
+    g.fillStyle = '#15120f'; g.font = '400 64px "Instrument Serif", Georgia, serif'; g.fillText(String(v), x, y + 64);
   });
-  if (d.topBook) { g.fillStyle = '#27276a'; g.font = 'italic 500 44px "Cormorant Garamond", Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
+  if (d.topBook) { g.fillStyle = '#e0592f'; g.font = 'italic 500 40px "Instrument Serif", Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   if (!blob) return toast('Resim hazırlanamadı.');
   const file = new File([blob], `kitap-kulubu-${d.key}.png`, { type: 'image/png' });
