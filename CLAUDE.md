@@ -19,7 +19,7 @@
 - `style.css`: tema değişkenleri `:root` içinde. Dosyanın sonunda lofi dokunuşları, zamanlayıcı ve profil grafiği stilleri var.
 - `config.js`: Firebase ayarları, üyeler, izleyiciler, isteğe bağlı Google Books anahtarı.
 - `kitap-bilgi.json`: kitap sayfasındaki Bilgi ve Yazar sekmeleri için elle yazılmış bilgiler. Anahtar, Firestore'daki kitap id'si.
-- `sw.js`: ağ öncelikli önbellek. İstekler `cache: 'no-cache'` ile gider, yani GitHub Pages'in 10 dakikalık önbelleğine takılmadan her açılışta sunucuya sorulur; çevrimdışıyken kayıtlı kopya kullanılır. Yeni service worker devreye girince `index.html` sayfayı bir kez yeniler. Kabuk dosyaları değişince yine de `CACHE` sürümünü artır (şu an `kulup-v11`).
+- `sw.js`: ağ öncelikli önbellek. İstekler `cache: 'no-cache'` ile gider, yani GitHub Pages'in 10 dakikalık önbelleğine takılmadan her açılışta sunucuya sorulur; çevrimdışıyken kayıtlı kopya kullanılır. Yeni service worker devreye girince `index.html` sayfayı bir kez yeniler. Kabuk dosyaları değişince yine de `CACHE` sürümünü artır (şu an `kulup-v12`).
 - `manifest.webmanifest`, `icon.svg`: PWA olarak ana ekrana eklenebilir.
 - `tasima.json`: eski Claude artifact'ından taşınan veri. Bir kez içe aktarıldı, artık gerekmiyor.
 
@@ -55,7 +55,7 @@ Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Okuma köşesi (`viewTim
 
 ## Tasarım
 
-Modern editoryal tema: sıcak kâğıt zemin `#f2eee8`, mürekkep siyahı `#15120f` (ana düğmeler), trabzon hurması vurgu `#e0592f` (az ve yerinde), koyu orman yeşili `#13201c` (sahne, spot kartı, kitap sayfası üstü). Yazı tipleri: başlıklar Instrument Serif (tek ağırlık 400; kalın yapma), arayüz Geist. Çok kelimeli kitap başlıklarında son kelime italik ve vurgu renginde (`emLast`). Bölüm başlıklarında numaralı etiket (`.idx`). Koyu bölümlerde film greni (`--grain`). Yeni renkleri doğrudan yazmak yerine `:root` değişkenlerini kullan.
+Gece okuması teması (kullanıcı seçti; önceki açık temaları "ucuz" buldu): derin lacivert-siyah zemin `#0f1118`, yüzeyler `#171a24` / `#1f2330`, krem yazı `#ece4d6`, tek vurgu lamba sarısı `#e8b04f` (ana düğmeler koyu yazılı sarı), saç teli kenarlıklar. Başka renk ekleme; sadelik ucuz görünmemenin anahtarı. Yazı tipleri: başlıklar Lora (500), arayüz Inter. style.css'in sonundaki "Gece okuması" bölümü önceki katmanların açık renklerini ezer. Çok kelimeli kitap başlıklarında son kelime italik ve vurgu renginde (`emLast`). Bölüm başlıklarında numaralı etiket (`.idx`). Koyu bölümlerde film greni (`--grain`). Yeni renkleri doğrudan yazmak yerine `:root` değişkenlerini kullan.
 
 - Kitaplık: okunan kitap rafta değil, başta koyu `spotlight` kartında; raflar Sırada / Yarım bıraktıklarımız; Okuduklarımız bantla tutturulmuş polaroid kolajı (`polaroid`).
 - El yapımı katman: üyelerin notları Caveat el yazısıyla mavi mürekkepte (`.hand`), menüde seçili sayfa ve başlıkların altında mürekkep karalaması (`--scribble`), bilgisayarda kitap kartları ve fotoğrafların üstünde "Aç/Büyüt" imleç balonu (`.cbubble`).
