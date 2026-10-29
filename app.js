@@ -21,7 +21,7 @@ const GENERIC_Q = [
   'Bu kitabı kime önerirdin?',
 ];
 const TABS = [['genel', 'Genel'], ['yazar', 'Yazar'], ['bilgi', 'Bilgi'], ['once', 'Toplantı öncesi'], ['alinti', 'Alıntılar'], ['soru', 'Sorular'], ['toplanti', 'Toplantı']];
-const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart'], ['profil', 'Profilim', 'pin'], ['zamanlayici', 'Zamanlayıcı', 'clock'], ['takip', 'Takip', 'chart']];
+const VIEWS = [['buay', 'Bu ay', 'home'], ['kitaplik', 'Kitaplık', 'books'], ['oneriler', 'Öneriler', 'heart'], ['profil', 'Profilim', 'pin'], ['zamanlayici', 'Okuma köşesi', 'clock'], ['takip', 'Takip', 'chart']];
 const ICON = {
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   books: '<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16.5 4.8 3.8-1 3.2 15.4-3.8 1z" transform="translate(-2 .5)"/>',
@@ -1088,6 +1088,9 @@ document.addEventListener('click', e => {
       break;
     }
     case 'edit-cancel': S.editBook = null; render(); break;
+    case 'pview': S.profileOf = el.dataset.f; S.editProfile = false; render(); break;
+    case 'pedit': S.editProfile = true; render(); { const bio = document.getElementById('pf-bio'); if (bio) bio.focus(); } break;
+    case 'pedit-cancel': S.editProfile = false; render(); break;
     case 'recapm': S.recapBack = Number(el.dataset.v) || 0; render(); break;
     case 'recapshare': shareRecap().catch(fail); break;
     case 'focusmode': setFocusMode(!document.body.classList.contains('focus-mode')); break;
@@ -1179,6 +1182,14 @@ document.addEventListener('submit', async e => {
       Object.assign(S, { newPhoto: null, photoMsg: '' });
       form.reset();
       await newBook(data, photo);
+      return;
+    }
+    if (kind === 'profile') {
+      const val = n => f[n].value.trim();
+      await db.patch('profiles', slug(S.me), { name: S.me, bio: val('bio'), genres: val('genres'), favBook: val('favBook'), favAuthor: val('favAuthor'), quote: val('quote'), yearGoal: Number(f.yearGoal.value) || 0 });
+      S.editProfile = false;
+      render();
+      toast('Profil kaydedildi');
       return;
     }
     if (kind === 'bookedit') {
@@ -1463,24 +1474,75 @@ await db.add('sessions', { by: slug(S.me), bookId: t.bookId, seconds: secs, at: 
 toast(typeof msg === 'string' ? msg : 'Oturum kaydedildi');
 }
 }
+// Profil: kişisel sayfa (hakkımda, favoriler, okudukları, yıllık hedef). Sayısal okuma istatistikleri Takip'te.
+// Üyeler birbirinin profilini görebilir; yalnızca kendi profilini düzenleyebilir.
+function finishedBy2(b, name) {
+return b.status === 'tamamlandi' || ((b.progress || {})[slug(name)] || 0) >= 100;
+}
 function viewProfile2() {
 ensureSessions();
 ensureProfiles();
 if (!S.me) return `<div class="page-head"><h1>Profilim</h1></div><div class="card empty"><p class="muted">Profilini görmek için önce kim olduğunu seç.</p></div>`;
-const me = slug(S.me);
-const mine = (S.sessions || []).filter(s => s.by === me).sort((a, b) => (b.at || '').localeCompare(a.at || ''));
-const total = mine.reduce((a, s) => a + (s.seconds || 0), 0);
-const prof = (S.profiles || {})[me] || {};
+const who = members().includes(S.profileOf) ? S.profileOf : S.me;
+const key = slug(who);
+const mineView = who === S.me;
+const prof = (S.profiles || {})[key] || {};
+const year = String(new Date().getFullYear());
+const reading = S.books.filter(b => (b.status || 'okunuyor') === 'okunuyor');
+const finished = S.books.filter(b => finishedBy2(b, who) && (b.month || b.at || '').startsWith(year));
+const picked = S.books.filter(b => b.pickedBy === who);
+const rated = S.books.map(b => [b, (b.ratings || {})[key] || 0]).filter(([, r]) => r > 0).sort((a, b) => b[1] - a[1]);
+const genres = String(prof.genres || '').split(',').map(t => t.trim()).filter(Boolean);
+const goal = Number(prof.yearGoal) || 0;
+const pct = goal ? Math.min(100, Math.round(finished.length / goal * 100)) : 0;
+const switcher = `<div class="filters" role="group" aria-label="Üye seç">${members().map(n => `<button type="button" class="${n === who ? 'on' : ''}" data-act="pview" data-f="${esc(n)}">${esc(n)}${n === S.me ? ' (sen)' : ''}</button>`).join('')}</div>`;
+const fav = [['En sevdiğim kitap', prof.favBook], ['En sevdiğim yazar', prof.favAuthor]].filter(([, v]) => v);
+const bookRow = b => `<li><button type="button" class="linkbtn" data-act="open" data-id="${esc(b.id)}">${esc(b.title)}</button><span class="small muted">${esc(b.author || '')}</span></li>`;
 return `
-<div class="page-head"><div><p class="label">Profil</p><h1>${esc(S.me)}</h1></div></div>
-<div class="grid3">
-<section class="card"><h3>Toplam okuma</h3><p class="big">${esc(fmtSure(total))}</p><p class="small muted">${mine.length} oturum</p></section>
-<section class="card"><h3>Bugün</h3><p class="big">${esc(fmtSure(todaySecs2(mine)))}</p><p class="small muted">Seri: ${streakDays2(mine)} gün · Zamanlayıcı sayfasından oku</p></section>
-<section class="card"><h3>Son oturumlar</h3>${sessionsList2(mine, 6)}</section>
+<div class="page-head"><div><p class="label">Profil</p><h1>${mineView ? 'Profilim' : esc(who)}</h1></div>${switcher}</div>
+${S.editProfile && mineView ? profileForm2(prof) : `
+<section class="card prof-hero" style="--c:${colorOf(who)}">
+${avatar(who, 'lg')}
+<div class="stack" style="gap:6px;min-width:0">
+<h2>${esc(who)}</h2>
+${prof.bio ? `<p class="about" style="margin:0">${esc(prof.bio)}</p>` : `<p class="muted">${mineView ? 'Kendinden biraz bahset: ne tür kitaplar seversin, nasıl okursun?' : 'Henüz kendinden bahsetmemiş.'}</p>`}
+${genres.length ? `<div class="chips">${genres.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>` : ''}
 </div>
-${profExtras2(mine, prof)}`;
+${mineView ? '<button type="button" class="btn ghost sm" data-act="pedit">Profili düzenle</button>' : ''}
+</section>`}
+<div class="grid3">
+<section class="card"><h3>Favoriler</h3>
+${fav.length ? `<dl class="facts" style="grid-template-columns:1fr">${fav.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+${prof.quote ? `<div class="quote"><blockquote>${esc(prof.quote)}</blockquote></div>` : ''}
+${!fav.length && !prof.quote ? '<p class="muted small">Henüz favori eklenmedi.</p>' : ''}
+</section>
+<section class="card"><h3>${year} hedefi</h3>
+<p class="big">${finished.length}<small>${goal ? ' / ' + goal + ' kitap' : ' kitap bitti'}</small></p>
+${goal ? `<div class="bar goal"><span style="width:${pct}%"></span></div><p class="small muted">%${pct} tamamlandı</p>` : `<p class="small muted">${mineView ? 'Yıllık kitap hedefini profilini düzenleyerek koyabilirsin.' : 'Yıllık hedef koymamış.'}</p>`}
+</section>
+<section class="card"><h3>Şu an okuyor</h3>
+${reading.length ? `<ul class="prog">${reading.map(b => { const p = (b.progress || {})[key] || 0; return `<li style="--c:${colorOf(who)}"><div class="prow"><button type="button" class="linkbtn" data-act="open" data-id="${esc(b.id)}">${esc(b.title)}</button><span class="pct"><b>%${p}</b></span></div><div class="bar"><span style="width:${p}%"></span></div></li>`; }).join('')}</ul>` : '<p class="muted small">Şu an okunan kitap yok.</p>'}
+</section>
+</div>
+<div class="cols even">
+<section class="card"><h3>Kulübe seçtiği kitaplar <span class="count">${picked.length}</span></h3>${picked.length ? `<ul class="feed">${picked.map(bookRow).join('')}</ul>` : '<p class="muted small">Henüz kitap seçmemiş.</p>'}</section>
+<section class="card"><h3>Puanladıkları</h3>${rated.length ? `<ul class="feed">${rated.map(([b, r]) => `<li><button type="button" class="linkbtn" data-act="open" data-id="${esc(b.id)}">${esc(b.title)}</button>${stars(r)}</li>`).join('')}</ul>` : '<p class="muted small">Henüz puan vermemiş.</p>'}</section>
+</div>
+${mineView ? '<div class="actions"><button type="button" class="btn ghost" data-act="nav" data-view="takip">Okuma istatistiklerim →</button></div>' : ''}`;
 }
-// Profil özeti ve ayrı Zamanlayıcı sayfası
+function profileForm2(prof) {
+const field = (label, name, ph, type = 'text') => `<label>${label}<input id="pf-${name}" name="${name}" type="${type}" value="${esc(prof[name] || '')}" placeholder="${ph}" autocomplete="off"${type === 'number' ? ' min="0" inputmode="numeric"' : ''}></label>`;
+return `<form class="card stack" data-form="profile">
+<h3>Profili düzenle</h3>
+<label>Hakkımda<textarea id="pf-bio" name="bio" rows="3" placeholder="Ne tür kitaplar seversin, nasıl okursun?">${esc(prof.bio || '')}</textarea></label>
+${field('Sevdiğim türler', 'genres', 'Virgülle ayır: roman, bilimkurgu, şiir')}
+<div class="row2">${field('En sevdiğim kitap', 'favBook', 'Kitap adı')}${field('En sevdiğim yazar', 'favAuthor', 'Yazar adı')}</div>
+<label>Sevdiğim bir alıntı<textarea id="pf-quote" name="quote" rows="2" placeholder="Aklından çıkmayan bir cümle">${esc(prof.quote || '')}</textarea></label>
+${field('Bu yılki kitap hedefim', 'yearGoal', 'Ör. 12', 'number')}
+<div class="actions"><button class="btn sm" type="submit">Kaydet</button><button type="button" class="btn ghost sm" data-act="pedit-cancel">Vazgeç</button></div>
+</form>`;
+}
+// Gün hesapları ve Okuma köşesi (zamanlayıcı) sayfası
 // Gün anahtarları yerel saate göre (Türkiye'de gece yarısından sonraki okumalar doğru güne düşsün)
 const dayKey2 = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const sessDay2 = s => (s.at ? dayKey2(new Date(s.at)) : '');
@@ -1531,10 +1593,10 @@ ${illus('tea', 'timer-art')}
 function viewTimer2() {
 ensureSessions();
 ensureProfiles();
-if (!S.me) return `<div class="page-head"><h1>Zamanlayıcı</h1></div><div class="card empty"><p class="muted">Önce kim olduğunu seç.</p></div>`;
+if (!S.me) return `<div class="page-head"><h1>Okuma köşesi</h1></div><div class="card empty"><p class="muted">Önce kim olduğunu seç.</p></div>`;
 const prof = (S.profiles || {})[slug(S.me)] || {};
 return `
-<div class="page-head"><div><p class="label">Zamanlayıcı</p><h1>Okuma köşesi</h1></div><button type="button" class="btn ghost" data-act="focusmode">Odak modu</button></div>
+<div class="page-head"><div><p class="label">Zamanlayıcı ve müzik</p><h1>Okuma köşesi</h1></div><button type="button" class="btn ghost" data-act="focusmode">Odak modu</button></div>
 <button type="button" class="focus-exit btn ghost sm" data-act="focusmode">Odak modundan çık</button>
 <div class="cols even timer-page">
 <section class="card" id="timer-card">${timerBody2()}</section>
@@ -1547,24 +1609,13 @@ if (!S.me) return toast('Önce kim olduğunu seç.');
 const v = Math.max(0, Number(document.getElementById('goal-min').value) || 0);
 db.patch('profiles', slug(S.me), { name: S.me, goalMin: v }).then(() => toast('Hedef kaydedildi')).catch(fail);
 }
-function profExtras2(mine, prof) {
-const days = [...Array(7)].map((_, i) => {
-const d = new Date(Date.now() - (6 - i) * 86400000);
-const k = dayKey2(d);
-return { label: d.toLocaleDateString('tr-TR', { weekday: 'short' }), secs: mine.filter(s => sessDay2(s) === k).reduce((a, s) => a + (s.seconds || 0), 0) };
-});
-const weekMin = Math.round(days.reduce((a, d) => a + d.secs, 0) / 60);
+// Haftalık dakika hedefi (Takip sayfasında): son 7 günün toplamı hedefle karşılaştırılır
+function weekGoalCard2(mine, prof) {
+const weekSecs = [...Array(7)].map((_, i) => dayKey2(new Date(Date.now() - i * 86400000))).reduce((a, k) => a + mine.filter(s => sessDay2(s) === k).reduce((x, s) => x + (s.seconds || 0), 0), 0);
+const weekMin = Math.round(weekSecs / 60);
 const goal = prof.goalMin || 0;
 const pct = goal ? Math.min(100, Math.round(weekMin / goal * 100)) : 0;
-const max = Math.max(60, ...days.map(d => d.secs));
-const bars = days.map(d => `<div class="c7"><div class="c7-bar" title="${esc(fmtSure(d.secs))}" style="height:${Math.max(2, Math.round(d.secs / max * 100))}%"></div><span>${esc(d.label)}</span></div>`).join('');
-const dropped = S.books.filter(b => b.status === 'birakildi');
-const droppedHtml = dropped.length ? `<ul class="feed">${dropped.map(b => `<li><span class="ft">${esc(b.title)}</span><span class="small muted">${esc(b.author || '')}</span></li>`).join('')}</ul>` : '<p class="muted small">Bırakılan kitap yok.</p>';
-return `<div class="grid3">
-<section class="card"><h3>Haftalık hedef</h3><p class="big">${weekMin}<small> dk</small></p><p class="small muted">${goal ? 'Hedef ' + goal + ' dk · %' + pct : 'Henüz hedef yok'}</p><div class="bar goal"><span style="width:${pct}%"></span></div><div class="actions"><input id="goal-min" type="number" min="0" value="${goal || ''}" placeholder="Dakika" style="width:7em"><button type="button" class="btn sm" data-act="gsave">Kaydet</button></div></section>
-<section class="card"><h3>Son 7 gün</h3><div class="chart7">${bars}</div></section>
-<section class="card"><h3>Bırakılan kitaplar</h3>${droppedHtml}</section>
-</div>`;
+return `<section class="card"><h3>Haftalık hedef</h3><p class="big">${weekMin}<small> dk</small></p><p class="small muted">${goal ? 'Son 7 gün · hedef ' + goal + ' dk · %' + pct : 'Son 7 gün · henüz hedef yok'}</p><div class="bar goal"><span style="width:${pct}%"></span></div><div class="actions"><input id="goal-min" type="number" min="0" value="${goal || ''}" placeholder="Dakika" style="width:7em"><button type="button" class="btn sm" data-act="gsave">Kaydet</button></div></section>`;
 }
 // Takip: kişiye özel okuma alışkanlığı, zamanlayıcı oturumlarından hesaplanır
 const HEAT_WEEKS = 18;
@@ -1614,13 +1665,9 @@ const week = WEEKDAYS2.map((label, i) => [label, mine.filter(s => (new Date(s.at
 const perBook = {};
 mine.forEach(s => { perBook[s.bookId] = (perBook[s.bookId] || 0) + (s.seconds || 0); });
 const books = Object.entries(perBook).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, secs]) => [(bookById(id) || {}).title || 'Silinmiş kitap', secs]);
-const monthKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-const thisM = monthKey(today), prevM = monthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1));
-const monthSum = key => Object.entries(byDay).filter(([k]) => k.startsWith(key)).reduce((a, [, v]) => a + v, 0);
-const nowM = monthSum(thisM), lastM = monthSum(prevM);
 const topPart = parts.slice().sort((a, b) => b[1] - a[1])[0];
 const topDay = WEEKDAYS_LONG2[week.indexOf(week.slice().sort((a, b) => b[1] - a[1])[0])];
-const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay)}</b> günleri okuyorsun.` : 'Zamanlayıcıyla okudukça alışkanlıkların burada belirecek.';
+const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay)}</b> günleri okuyorsun.` : 'Okuma köşesinde zamanlayıcıyla okudukça alışkanlıkların burada belirecek.';
 return `
 <div class="page-head"><div><p class="label">Takip</p><h1>Okuma alışkanlığım</h1></div></div>
 <p class="muted">${insight}</p>
@@ -1638,7 +1685,7 @@ ${recapCard2(mine)}
 <div class="grid3">
 <section class="card"><h3>Günün saatleri</h3>${barsList2(parts)}</section>
 <section class="card"><h3>Haftanın günleri</h3>${barsList2(week)}</section>
-<section class="card"><h3>Bu ay</h3><p class="big">${Math.round(nowM / 60)}<small> dk</small></p><p class="small muted">Geçen ay ${dk2(lastM)}${lastM ? ` · ${nowM >= lastM ? '+' : '-'}%${Math.abs(Math.round((nowM - lastM) / lastM * 100))}` : ''}</p></section>
+${weekGoalCard2(mine, (S.profiles || {})[slug(S.me)] || {})}
 </div>
 <section class="card"><h3>Kitaplara göre</h3>${books.length ? barsList2(books) : '<p class="muted small">Henüz oturum yok.</p>'}</section>`;
 }
@@ -1734,7 +1781,7 @@ function recapCard2(mine) {
       ${illus('cozy', 'recap-art')}
       <div class="recap-main">
         <p class="recap-big">${d.total ? esc(hoursText(d.total)) : 'Henüz okuma yok'}</p>
-        <p class="muted">${d.total ? 'okudun' + (d.topBook ? `, en çok <b>${esc(d.topBook)}</b>` : '') : 'Zamanlayıcıyla okudukça burası dolacak.'}</p>
+        <p class="muted">${d.total ? 'okudun' + (d.topBook ? `, en çok <b>${esc(d.topBook)}</b>` : '') : 'Okuma köşesinde zamanlayıcıyla okudukça burası dolacak.'}</p>
         ${d.finished.length ? `<p class="small">Bitirilen: ${d.finished.map(esc).join(', ')}</p>` : ''}
       </div>
     </div>
