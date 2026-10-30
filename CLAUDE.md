@@ -19,7 +19,7 @@
 - `style.css`: tema değişkenleri `:root` içinde. Dosyanın sonunda lofi dokunuşları, zamanlayıcı ve profil grafiği stilleri var.
 - `config.js`: Firebase ayarları, üyeler, izleyiciler, isteğe bağlı Google Books anahtarı.
 - `kitap-bilgi.json`: kitap sayfasındaki Bilgi ve Yazar sekmeleri için elle yazılmış bilgiler. Anahtar, Firestore'daki kitap id'si.
-- `sw.js`: ağ öncelikli önbellek. İstekler `cache: 'no-cache'` ile gider, yani GitHub Pages'in 10 dakikalık önbelleğine takılmadan her açılışta sunucuya sorulur; çevrimdışıyken kayıtlı kopya kullanılır. Yeni service worker devreye girince `index.html` sayfayı bir kez yeniler. Kabuk dosyaları değişince yine de `CACHE` sürümünü artır (şu an `kulup-v16`).
+- `sw.js`: ağ öncelikli önbellek. İstekler `cache: 'no-cache'` ile gider, yani GitHub Pages'in 10 dakikalık önbelleğine takılmadan her açılışta sunucuya sorulur; çevrimdışıyken kayıtlı kopya kullanılır. Yeni service worker devreye girince `index.html` sayfayı bir kez yeniler. Kabuk dosyaları değişince yine de `CACHE` sürümünü artır (şu an `kulup-v17`).
 - `manifest.webmanifest`, `icon.svg`: PWA olarak ana ekrana eklenebilir.
 - `tasima.json`: eski Claude artifact'ından taşınan veri. Bir kez içe aktarıldı, artık gerekmiyor.
 
@@ -50,6 +50,7 @@ Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Okuma köşesi (`viewTim
 - Ses notları: kitabın "Okumadan önce / okurken" sekmesinde, en çok 30 sn. `MediaRecorder` ile 24 kbit/sn kaydedilir ve not belgesine `audio` (data URL) + `dur` alanlarıyla `kind: 'own'` olarak eklenir.
 
 - Zamanlayıcı modları: Serbest, Pomodoro 25/5, Derin odak 50/10, Kısa tur 15/3, Özel döngü, Geri sayım (`MODES2`). Çalışan zamanlayıcı `localStorage` `kulup-timer2` içinde tutulur.
+- Müzik çalar (`musicEmbed`) videosuz: Spotify kompakt embed (80px); YouTube iframe görünmez durur (`.yt-hide`), düğmeler `ytCommand` ile postMessage gönderir, durum ve başlık `message` olayından gelir. Odada `#music-drag` tutamacıyla sürüklenir (`moveMusic`, konum `localStorage` `kulup-mpos`, CSS `--px`/`--py`).
 - Müzik kartı zamanlayıcının yanında. Spotify/YouTube embed'i kesilmesin diye zamanlayıcı sayfasında `render()` yerine `refreshTimer2()` yalnızca zamanlayıcı kartını yeniler.
 - Profilim: toplam süre, bugün ve seri, haftalık hedef, son 7 gün grafiği, bırakılan kitaplar.
 
