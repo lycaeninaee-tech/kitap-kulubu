@@ -1,1 +1,93 @@
-{"hesse-narsis-goldmund":{"orijinal":"Narziß und Goldmund","yazar":{"ad":"Hermann Hesse","not":"Hermann Hesse 1877'de Almanya'nın Calw kentinde doğdu, 1962'de İsviçre'de öldü. 1946'da Nobel Edebiyat Ödülü'nü aldı. Bozkırkurdu, Siddhartha ve Camdan Boncuk Oyunu en bilinen eserleri arasında."},"bilgi":["Roman ilk kez 1930'da Almanca olarak yayımlandı.","İngilizceye ilk çevirisi 1932'de 'Death and the Lover' adıyla, 1968'de ise 'Narcissus and Goldmund' adıyla yapıldı.","Hikâye Orta Çağ Almanya'sında bir manastır okulunda geçer. İki karakter, akla yaslanan Narziß ile duygularının peşinden giden Goldmund, bu okulda tanışır.","Romanın önemli bir bölümünde veba salgını yer alır. Goldmund'un yolculuğu sanatçılık ve yaşam deneyimi üzerinden ilerler."]},"2D5h13G8cbQxxb0CSQgg":{"orijinal":"오렌지와 빵칼","yazar":{"ad":"Cheong Ye","not":"Cheong Ye, Kore'de yayımlanan ve İngilizceye çevrilen bu romanın yazarıdır. Kyobo Kitabevi Hikâye Yarışması'nda Mükemmellik Ödülü'nü kazanmış, Kore Bilim Kurgu Edebiyatı Ödülleri'nde büyük ödül almıştır."},"bilgi":["Roman Korece özgün adıyla 오렌지와 빵칼 olarak 2024'te yayımlandı.","İngilizce çevirisi 'Orange and the Bread Knife' adıyla, çevirmen Slin Jung tarafından yapıldı.","Kitap, bir öğretmenin kısa bir duygu düzenleme programına katılmasını ve bunun onu toplumsal beklentilerden nasıl kurtardığını anlatan distopik bir gerilimdir.","Eleştirmenler hikâyenin tonunu Black Mirror tarzı bir distopyaya benzetiyor."]}}
+{
+  "hesse-narsis-goldmund": {
+    "orijinal": "Narziß und Goldmund",
+    "yazar": {
+      "ad": "Hermann Hesse",
+      "not": "Hermann Hesse 1877'de Almanya'nın Calw kentinde doğdu, 1962'de İsviçre'de öldü. 1946'da Nobel Edebiyat Ödülü'nü aldı. Bozkırkurdu, Siddhartha ve Camdan Boncuk Oyunu en bilinen eserleri arasında."
+    },
+    "bilgi": [
+      "Roman ilk kez 1930'da Almanca olarak yayımlandı.",
+      "İngilizceye ilk çevirisi 1932'de 'Death and the Lover' adıyla, 1968'de ise 'Narcissus and Goldmund' adıyla yapıldı.",
+      "Hikâye Orta Çağ Almanya'sında bir manastır okulunda geçer. İki karakter, akla yaslanan Narziß ile duygularının peşinden giden Goldmund, bu okulda tanışır.",
+      "Romanın önemli bir bölümünde veba salgını yer alır. Goldmund'un yolculuğu sanatçılık ve yaşam deneyimi üzerinden ilerler."
+    ],
+    "sorular": [
+      "Narsis ve Goldmund birbirinin zıttı mı, yoksa aynı insanın iki yarısı mı? Sen kendini hangisine daha yakın hissediyorsun?",
+      "Narsis, Goldmund'un manastıra ait olmadığını ilk gören kişi. Birini kendi yolundan uzaklaştırmak bir dostluk davranışı mıdır?",
+      "Goldmund'un sürekli yolda olması bir özgürlük mü, yoksa bir kaçış mı?",
+      "Veba bölümleri Goldmund'un yaşama ve sanata bakışını nasıl değiştiriyor?",
+      "Hesse'ye göre sanat ölüme verilen bir cevap olabilir mi? Goldmund'un heykelleri bu soruya ne söylüyor?",
+      "Kitaptaki kadınlar kendi başlarına karakterler mi, yoksa Goldmund'un yolculuğunun durakları mı?",
+      "Goldmund'un 'anne' imgesini araması neyi temsil ediyor olabilir?",
+      "Son sahnedeki konuşma Narsis'in hayatını anlamsız kılıyor mu, yoksa ikisinin yolunu tamamlıyor mu?"
+    ]
+  },
+  "2D5h13G8cbQxxb0CSQgg": {
+    "orijinal": "오렌지와 빵칼",
+    "yazar": {
+      "ad": "Cheong Ye",
+      "not": "Cheong Ye (청예), Güney Koreli yazar. 2023'te 6. Kore Bilim Kurgu Edebiyatı Ödülleri'nde roman dalında büyük ödülü aldı; Kyobo Kitabevi hikâye yarışmasında da ödül kazandı. Romantik hikâyelerden bilim kurguya uzanan bir yelpazede yazıyor."
+    },
+    "bilgi": [
+      "Roman Korece özgün adıyla 오렌지와 빵칼 olarak 2024'te Huble yayınevinden çıktı.",
+      "Türkçesi İthaki Yayınları'ndan, Tayfun Kartav çevirisiyle yayımlandı. İngilizcesi 'Orange and the Bread Knife' adıyla, Slin Jung çevirisiyle 2026'da Wildfire'dan çıktı.",
+      "Ana karakter Oh Youngah, 27 yaşında, hep gülümseyen ve hep alttan alan bir anaokulu öğretmeni. Dört haftalık bir duygu düzenleme programına katılıyor.",
+      "Program fazla iyi çalışınca Youngah üzerindeki toplumsal beklentileri bırakmaya başlıyor; roman uyum sağlama baskısını ve bunun altında biriken öfkeyi gergin bir tonla işliyor."
+    ],
+    "sorular": [
+      "Youngah'ın sürekli gülümsemesi nezaket mi, hayatta kalma yöntemi mi? Sen hayatında böyle 'gülümsediğin' yerleri fark ettin mi?",
+      "Duygularını düzenleyen bir program sunulsa katılır mıydın? Hangi duygundan vazgeçmek isterdin, hangisinden asla?",
+      "Program Youngah'ı özgürleştiriyor mu, yoksa onu başka bir şeye mi dönüştürüyor?",
+      "Bir anaokulu öğretmeninden beklenen 'iyi kadın' rolü kitapta nasıl görünüyor?",
+      "Portakal ve ekmek bıçağı sence neyi simgeliyor? Kör bir bıçakla kesmek ne anlatıyor olabilir?",
+      "Youngah'ın öfkesini haklı buldun mu? Okurken ona ne zaman yakın, ne zaman uzak hissettin?",
+      "Kitap 'herkese uyum sağlama' baskısını yalnızca Kore'ye mi ait anlatıyor, yoksa bizim hayatımızda da karşılığı var mı?",
+      "Son sayfalarda Youngah'ı özgür mü buldun, tehlikeli mi?"
+    ]
+  },
+  "intermezzo": {
+    "orijinal": "Intermezzo",
+    "yazar": {
+      "ad": "Sally Rooney",
+      "not": "Sally Rooney 1991'de İrlanda'nın Mayo kontluğunda doğdu, Dublin'de Trinity College'da okudu. Arkadaşlarla Sohbetler, Normal İnsanlar ve Güzel Dünya Neredesin romanlarıyla tanındı. Intermezzo dördüncü romanı."
+    },
+    "bilgi": [
+      "Roman 24 Eylül 2024'te Faber tarafından yayımlandı; 2024 İrlanda Kitap Ödülleri'nde yılın romanı dalında kısa listeye girdi.",
+      "Hikâye, babalarının ölümünün ardından iki kardeşi izler: Dublin'de avukat olan Peter ve 22 yaşındaki eski satranç dâhisi Ivan.",
+      "Adı çift anlamlıdır: Müzikte ara bölümü, satrançta ise beklenen hamleden önce araya sokulan hamleyi (Zwischenzug) ifade eder.",
+      "Eleştirmenlerin tepkisi karışıktı; kimileri romanı Rooney'nin önceki kitaplarından felsefi olarak daha iddialı buldu."
+    ],
+    "sorular": [
+      "Peter ve Ivan'ın yası neden bu kadar farklı görünüyor? Yasın 'doğru' bir biçimi var mı?",
+      "Kardeşlerin birbirine duyduğu öfkenin altında aslında ne yatıyor?",
+      "Peter'ın iki kadın arasındaki hali sevgi mi, korku mu, kendini cezalandırma mı?",
+      "Ivan ile yaşça büyük olan Margaret'in ilişkisine çevreleri neden bu kadar karışıyor? Sen nasıl baktın?",
+      "Satranç Ivan'ın dünyayı anlama biçimini nasıl şekillendiriyor? Kitapta 'ara hamle' fikrini nerede gördün?",
+      "Rooney'nin Peter bölümlerindeki kırık, parçalı anlatımı seni içine çekti mi, yoksa uzaklaştırdı mı?",
+      "Kitap 'normal' bir hayat ve ilişki beklentisini nasıl sorguluyor?",
+      "Sonda kardeşler gerçekten barışıyor mu? Bu son sana yeterli geldi mi?"
+    ]
+  },
+  "dunyanin-kiyisindaki-kafe": {
+    "orijinal": "The Cafe on the Edge of the World",
+    "yazar": {
+      "ad": "John Strelecky",
+      "not": "John P. Strelecky Amerikalı yazar. İlk kitabı The Cafe on the Edge of the World'ü 2002'de yazdı; kitap sonradan The Why Cafe adıyla da anıldı ve Return to the Why Cafe adlı bir devamı geldi."
+    },
+    "bilgi": [
+      "Hikâyenin kahramanı John, hayatın telaşından kısa bir tatille kaçmak isterken yolu hiçliğin ortasındaki küçük bir kafeye düşer.",
+      "Kafenin menüsünde üç soru vardır: Neden buradasın? Ölümden korkuyor musun? Halinden memnun musun?",
+      "Kitap klasik bir roman değil, hayatın anlamı üzerine sohbetlerle ilerleyen kısa bir hikâye."
+    ],
+    "sorular": [
+      "Menüdeki üç soruyu kendine sorsan bugün ne cevap verirdin?",
+      "'Neden buradasın?' sorusu sende rahatsızlık mı yarattı, merak mı?",
+      "Kitap hayatın anlamını fazla basitleştiriyor mu, yoksa zaten basit olanı mı hatırlatıyor?",
+      "'Bir gün yaparım' dediğin ama hep ertelediğin bir şey var mı?",
+      "Hayatını değiştirmek için cesaret mi gerekir, para mı, zaman mı? Kitabın cevabına katılıyor musun?",
+      "Kitaptaki diyaloglar sana inandırıcı geldi mi, yoksa bir kişisel gelişim kitabı gibi mi okudun?",
+      "Sence bir insan neden kendi cevabını bilmesine rağmen onu yaşamaz?",
+      "Kitabı bitirdikten sonra hayatında küçük de olsa değiştirmek istediğin bir şey oldu mu?"
+    ]
+  }
+}
