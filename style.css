@@ -747,9 +747,9 @@ p.hand, .ft.hand { font-size: 23px; line-height: 1.2; }
 /* ================= Seviye 5: kinetik editoryal (bulut nötr zemin + tek elektrik mavisi, dev Bodoni başlıklar) ================= */
 :root {
   --bg: #f0eee9; --surface: #f8f7f3; --sunk: #e5e2db; --ink: #1b1b1f; --muted: #6b6b73; --line: #d6d3cc; --rule: #1b1b1f;
-  --accent: #2b4bff; --accent-deep: #1630d9; --accent-ink: #ffffff; --accent-soft: #e1e6ff; --plum: #2b4bff; --plum-soft: #e1e6ff;
-  --ok: #1f8f62; --ok-soft: #dcefe5; --m1: #ff5a36; --m2: #12a37f; --m3: #2b4bff;
-  --night: #1b1b1f; --forest: #1b1b1f; --cream-hi: #f8f7f3; --ink-blue: #2b4bff;
+  --accent: #e8341c; --accent-deep: #c0260f; --accent-ink: #ffffff; --accent-soft: #fde3dd; --plum: #e8341c; --plum-soft: #fde3dd;
+  --ok: #1f8f62; --ok-soft: #dcefe5; --m1: #e8341c; --m2: #0a8a5e; --m3: #7b2fbe;
+  --night: #1b1b1f; --forest: #1b1b1f; --cream-hi: #f8f7f3; --ink-blue: #b3270f;
   --font-display: "Bodoni Moda", "Instrument Serif", Georgia, serif;
   --font-body: "Instrument Sans", "Geist", system-ui, -apple-system, sans-serif;
   --ease-out: cubic-bezier(.16, 1, .3, 1);
@@ -760,7 +760,7 @@ body { letter-spacing: 0; font-feature-settings: normal; }
 html { scrollbar-color: #bdb9b0 transparent; }
 ::-webkit-scrollbar-thumb { background: #bdb9b0; }
 /* Arka plan: neredeyse görünmez tek mavi ışık */
-body::before { background: radial-gradient(40vmax 34vmax at 85% 10%, rgba(43, 75, 255, 0.07), transparent 60%), radial-gradient(30vmax 26vmax at 10% 90%, rgba(255, 90, 54, 0.05), transparent 60%); }
+body::before { background: radial-gradient(40vmax 34vmax at 85% 10%, rgba(232, 52, 28, 0.07), transparent 60%), radial-gradient(30vmax 26vmax at 10% 90%, rgba(255, 90, 54, 0.05), transparent 60%); }
 /* Bodoni ağırlığı: dev başlıklar 500, metin içi başlıklar 400 */
 h1, h2, .display, .mega, .big, .next-name, .br-t b, .numbers b, .stat b, .recap-big, .ring-t b, .sec-title, .hero-title, .spot-title, .brand b, .page-head h1 { font-weight: 500; font-synthesis: none; }
 .display em, .hero-title em, .spot-title em, .page-head h1 em, .sec-title em { font-style: italic; color: var(--accent); }
@@ -838,7 +838,7 @@ h1, h2, .display, .mega, .big, .next-name, .br-t b, .numbers b, .stat b, .recap-
 .bento { gap: 0; border-bottom: 1px solid var(--rule); }
 .tile { background: transparent; border: 0; border-left: 1px solid var(--line); border-radius: 0; box-shadow: none; padding: 26px 28px 30px; }
 .tile:first-child { border-left: 0; padding-left: 0; }
-.tile:hover { transform: none; box-shadow: none; background: rgba(43, 75, 255, 0.03); }
+.tile:hover { transform: none; box-shadow: none; background: rgba(232, 52, 28, 0.03); }
 .tile-meet { background: transparent; }
 .mega { font-size: clamp(96px, 12vw, 176px); letter-spacing: -0.05em; line-height: 0.82; }
 .mega > span[data-count], .mega > span:first-child { color: var(--accent); }
@@ -852,7 +852,7 @@ h1, h2, .display, .mega, .big, .next-name, .br-t b, .numbers b, .stat b, .recap-
 
 /* Kartlar: köşeli, gölgesiz, ince çerçeve */
 .card, .tl-body { border-radius: 4px; box-shadow: none; border: 1px solid var(--line); background: var(--surface); }
-.tile::after, .card:not(.empty)::after { background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(43, 75, 255, 0.07), transparent 65%); }
+.tile::after, .card:not(.empty)::after { background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(232, 52, 28, 0.07), transparent 65%); }
 .subtabs { border-radius: 2px; border-color: var(--rule); background: rgba(240, 238, 233, 0.86); }
 .subtabs button { border-radius: 0; }
 .subtabs button.on { background: var(--ink); color: var(--bg); }
@@ -904,4 +904,96 @@ h1, h2, .display, .mega, .big, .next-name, .br-t b, .numbers b, .stat b, .recap-
   body::after, .sec-title::after, .rail-item .rail-cover, .polaroid .pol-img { animation: none !important; }
   .kin.rv .kw > span { transform: none !important; }
   .stage-cover::before, .stage-cover::after, .btn::before { transition: none !important; }
+}
+
+/* ================= Seviye 6: okuma odası ve genel cila ================= */
+.note .nt.hand { border-left-color: rgba(232, 52, 28, 0.25); }
+/* Okuma köşesi kurulumu: form değil, büyük bir soru */
+.room-q { font-size: clamp(40px, 5.4vw, 72px); line-height: 0.92; letter-spacing: -0.04em; margin-bottom: 18px; }
+.room-q em { font-style: italic; color: var(--accent); }
+#timer-card { padding: clamp(20px, 3vw, 34px); }
+.modes { gap: 0; border-top: 1px solid var(--rule); border-left: 1px solid var(--line); }
+.mode { border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; padding: 12px 14px; transition: color 0.25s, background 0.25s; }
+.mode b { font-family: var(--font-display); font-size: clamp(34px, 3.6vw, 48px); font-weight: 500; line-height: 1; letter-spacing: -0.03em; }
+.mode:hover { background: rgba(232, 52, 28, 0.05); }
+.mode:has(input:checked) { background: transparent; color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+.mode:has(input:checked) span { color: var(--accent); }
+#music-card iframe { border-radius: 4px; }
+
+/* Oda: oturum sürerken (küçük hali kartın içinde, odak modunda tam ekran) */
+.room { --rbg: #e9e2d3; --rink: #2a2420; --rmute: rgba(42, 36, 32, 0.64); --rline: rgba(42, 36, 32, 0.22); --glow: rgba(255, 196, 120, 0.7); position: relative; isolation: isolate; display: grid; gap: 14px; color: var(--ink); }
+.room[data-light="alaca"] { --rbg: #3a2a35; --rink: #f3e6d8; --rmute: rgba(243, 230, 216, 0.68); --rline: rgba(243, 230, 216, 0.24); --glow: rgba(255, 130, 90, 0.5); }
+.room[data-light="gece"] { --rbg: #111013; --rink: #ece7df; --rmute: rgba(236, 231, 223, 0.62); --rline: rgba(236, 231, 223, 0.2); --glow: rgba(255, 170, 90, 0.26); }
+.lamp, .room-only { display: none; }
+.rtop { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: 13px; color: var(--muted); }
+.rmid { display: grid; justify-items: center; text-align: center; gap: 4px; min-width: 0; }
+.digits { font-family: var(--font-display); font-weight: 500; font-size: clamp(72px, 9vw, 112px); line-height: 0.95; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
+.rtitle { margin: 0; font-family: var(--font-display); font-style: italic; font-size: clamp(19px, 2.2vw, 26px); line-height: 1.2; overflow-wrap: anywhere; }
+.rauthor { margin: 0; font-size: 13.5px; color: var(--muted); }
+.rline { height: 1px; background: var(--line); }
+.rline i { display: block; height: 3px; margin-top: -1px; width: 100%; background: var(--accent); transform-origin: left; transform: scaleX(var(--pct, 0)); transition: transform 1s linear; }
+.rbot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 20px; padding-top: 14px; }
+.ractions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.is-break .digits { opacity: 0.72; }
+
+/* Tam ekran oda: kart ekranı kaplar, müzik köşede küçülür; sınıf değişir, müzik kesilmez */
+body.focus-mode { overflow: hidden; }
+body.focus-mode #timer-card { position: fixed; inset: 0; z-index: 40; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; animation: room-in 0.9s var(--ease-out) both; }
+body.focus-mode #timer-card::after { display: none; }
+@keyframes room-in { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0); } }
+body.focus-mode .room { grid-template-rows: auto 1fr auto; height: 100%; padding: max(18px, env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); background: var(--rbg); color: var(--rink); overflow-y: auto; transition: background 1.4s, color 1.4s; }
+body.focus-mode .room-only { display: flex; }
+body.focus-mode .btn.room-only { display: inline-flex; }
+body.focus-mode .room-off { display: none; }
+body.focus-mode .lamp { display: block; position: fixed; z-index: -1; left: 50%; top: 46%; width: min(820px, 130vw); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, var(--glow), transparent); transform: translate(-50%, -50%); animation: lamp 9s ease-in-out infinite; pointer-events: none; }
+@keyframes lamp { 50% { transform: translate(-50%, -50%) scale(1.14); opacity: 0.78; } }
+body.focus-mode .rtop, body.focus-mode .rauthor { color: var(--rmute); }
+body.focus-mode .rmid { align-content: center; }
+body.focus-mode .digits { font-size: clamp(96px, 22vw, 260px); line-height: 0.9; }
+body.focus-mode .rtitle { font-size: clamp(20px, 2.6vw, 30px); }
+body.focus-mode .rline { background: var(--rline); }
+body.focus-mode .rline i { background: var(--rink); }
+body.focus-mode .rbot { justify-content: space-between; }
+.chips { align-items: center; gap: 6px; font-size: 13px; color: var(--rmute); }
+.chips button { padding: 6px 11px; font: inherit; font-size: 13px; background: none; border: 1px solid var(--rline); border-radius: 2px; color: var(--rink); cursor: pointer; transition: background 0.25s, color 0.25s; }
+.chips button[aria-pressed="true"] { background: var(--rink); color: var(--rbg); }
+.chips button:focus-visible { outline: 2px solid var(--rink); outline-offset: 2px; }
+body.focus-mode .room .btn { background: transparent; color: var(--rink); border-color: var(--rink); }
+body.focus-mode .room .btn:hover { background: transparent; color: #ffffff; border-color: var(--accent); }
+/* Müzik odada köşede küçük bir çalar; bağlantı yoksa görünmez */
+body.focus-mode #music-card { position: fixed; z-index: 41; top: 46px; right: 18px; width: min(300px, calc(100vw - 36px)); max-width: none; margin: 0; padding: 0; border: 0; background: transparent; }
+body.focus-mode #music-card::after, body.focus-mode #music-card > p { display: none; }
+body.focus-mode #music-card:not(:has(iframe)) { display: none; }
+body.focus-mode #music-card iframe { height: 80px; }
+@media (max-width: 640px) { body.focus-mode .rbot { justify-content: center; } }
+
+/* Oturum sonu anı */
+.done-moment { position: fixed; inset: 0; z-index: 90; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 24px; text-align: center; background: var(--accent); color: #ffffff; cursor: pointer; animation: room-in 0.7s var(--ease-out) both; transition: opacity 0.5s; }
+.done-moment.off { opacity: 0; }
+.done-moment .label { color: inherit; margin: 0; }
+.dm-n { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: clamp(110px, 24vw, 280px); line-height: 0.88; letter-spacing: -0.05em; }
+.dm-n small { font-size: 0.26em; font-style: italic; letter-spacing: -0.02em; }
+.dm-t { margin: 0; font-size: 16px; }
+
+/* Kitap sekmeleri: ince çizgili menü, seçili çizgi kayarak gider (slideTab) */
+.subtabs { width: 100%; gap: 24px; padding: 0; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: rgba(240, 238, 233, 0.92); top: 0; }
+.subtabs button { padding: 13px 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; }
+.subtabs button:hover { background: none; color: var(--ink); }
+.subtabs button.on { background: none; color: var(--ink); border-bottom-color: var(--accent); }
+.subtabs button.on .n { color: var(--accent); }
+.subtabs.sliding button.on { border-bottom-color: transparent; }
+.tabline { position: absolute; bottom: 0; height: 2px; background: var(--accent); transition: left 0.4s var(--ease-out), width 0.4s var(--ease-out); pointer-events: none; }
+
+/* Notlar dergi sütunları gibi dizilir */
+.notes:not([style]) { display: block; columns: 2 300px; column-gap: 40px; column-rule: 1px solid var(--line); }
+.notes:not([style]) > li { break-inside: avoid; }
+
+/* Takip: kutu yerine büyük rakamlar; boş sayfalarda dev tipografi */
+.stats { background: transparent; border-radius: 0; padding: 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.stat b { font-size: clamp(40px, 5vw, 68px); letter-spacing: -0.04em; line-height: 1; }
+.card.empty { background: transparent; border: 0; border-top: 1px solid var(--rule); }
+.card.empty h2 { font-size: clamp(40px, 6vw, 76px); line-height: 0.95; letter-spacing: -0.04em; }
+@media (prefers-reduced-motion: reduce) {
+  body.focus-mode #timer-card, body.focus-mode .lamp, .done-moment { animation: none !important; }
+  .rline i { transition: none !important; }
 }
