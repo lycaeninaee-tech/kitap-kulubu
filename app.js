@@ -873,6 +873,24 @@ function tabQuotes(b) {
   </div>`;
 }
 
+// kitap-bilgi.json'daki kitaba özel sorular; zaten eklenenler listelenmez
+function suggestedQ(b, list, id) {
+  const qs = (bilgiOf(b).sorular || []).filter(q => !list.some(n => n.text === q));
+  if (!qs.length) return '';
+  return `<div class="sugg-q"><p class="label">Bu kitaba özel öneriler</p>
+    <ul>${qs.map(q => `<li><span>${esc(q)}</span><button type="button" class="linkbtn" data-act="addq" data-id="${id}" data-q="${esc(q)}">Ekle</button></li>`).join('')}</ul>
+    <button type="button" class="btn ghost sm" data-act="addq" data-id="${id}">Hepsini ekle (${qs.length})</button></div>`;
+}
+async function addSuggestedQ(id, one) {
+  const b = bookById(id);
+  if (!b) return;
+  const have = (S.notes[id] || []).map(n => n.text);
+  const qs = one ? [one] : (bilgiOf(b).sorular || []).filter(q => !have.includes(q));
+  const start = Date.now();
+  try {
+    for (let i = 0; i < qs.length; i++) await db.add('books/' + id + '/notes', { kind: 'question', by: 'Claude önerisi', auto: true, done: false, text: qs[i], at: new Date(start + i).toISOString() });
+  } catch (err) { fail(err); }
+}
 function tabQuestions(b, id) {
   const list = (S.notes[b.id] || []).filter(n => kindOf(n) === 'question');
   const col = 'books/' + b.id + '/notes';
@@ -886,6 +904,7 @@ function tabQuestions(b, id) {
         <button type="button" class="check" data-act="qdone" data-id="${esc(n.id)}" aria-pressed="${!!n.done}" aria-label="Konuşuldu olarak işaretle">${icon('check')}</button>
         <div style="min-width:0"><p class="qt nt">${esc(n.text)}</p><div class="nm" style="margin:6px 0 0"><span class="muted small">${esc(n.by)}</span>${n.auto ? '<span class="badge">Claude</span>' : ''}${delBtn(n, col)}</div></div>
       </li>`).join('')}</ul>
+      ${suggestedQ(b, list, id)}
       ${b.genericAdded ? '' : `<button type="button" class="btn ghost sm" data-act="generic" data-id="${id}">Her kitaba uyan 8 soruyu ekle</button>`}
     </section>
     <form class="card stack" data-form="question">
@@ -1100,11 +1119,13 @@ document.addEventListener('click', e => {
     case 'tab': slideTab(el.dataset.tab); break;
     case 'room': setRoomOption(el.dataset.kind, el.dataset.v); break;
     case 'yt': ytCommand(el.dataset.f); break;
-    case 'logmin': { const inp = document.querySelector('#log-form [name="min"]'); if (inp) inp.value = el.dataset.v; break; }
+    case 'logpg': { const inp = document.querySelector('#log-form [name="pages"]'); if (inp) inp.value = el.dataset.v; break; }
+    case 'metric': try { localStorage.setItem('kulup-metric', el.dataset.v); } catch (err) {} render(); break;
+    case 'addq': addSuggestedQ(id, el.dataset.q); break;
     case 'logall': S.logAll = true; render(); break;
     case 'heatday': {
       const form = document.getElementById('log-form');
-      if (form) { form.elements.day.value = el.dataset.v; form.scrollIntoView({ behavior: 'smooth', block: 'center' }); form.elements.min.focus({ preventScroll: true }); }
+      if (form) { form.elements.day.value = el.dataset.v; form.scrollIntoView({ behavior: 'smooth', block: 'center' }); form.elements.pages.focus({ preventScroll: true }); }
       break;
     }
     case 'toggle-add': S.showAdd = !S.showAdd; if (S.view !== 'kitaplik') go('kitaplik'); else render(); break;
@@ -1245,16 +1266,20 @@ document.addEventListener('submit', async e => {
       return;
     }
     if (kind === 'log') {
-      const min = Math.round(Number(f.min.value));
-      if (!(min >= 1 && min <= 1440)) return toast('Süreyi 1 ile 1440 dakika arasında yaz.');
+      const min = Math.round(Number(f.min.value)) || 0, pages = Math.round(Number(f.pages.value)) || 0;
+      if (!min && !pages) return toast('Sayfa ya da süre yaz.');
+      if (min < 0 || min > 1440 || pages < 0 || pages > 5000) return toast('Sayfa ya da süre çok büyük görünüyor.');
       const at = new Date(`${f.day.value}T${f.time.value || '12:00'}:00`);
       const now = new Date();
       if (isNaN(at)) return toast('Tarihi kontrol et.');
       if (dayKey2(at) > dayKey2(now)) return toast('İleri tarihli kayıt eklenemez.');
       if (at > now) at.setTime(now.getTime());
-      await db.add('sessions', { by: slug(S.me), bookId: f.book.value, seconds: min * 60, at: at.toISOString(), manual: true });
-      f.min.value = '';
-      toast(min + ' dk eklendi');
+      const entry = { by: slug(S.me), bookId: f.book.value, seconds: min * 60, at: at.toISOString(), manual: true };
+      if (pages) entry.pages = pages;
+      syncProgress(f.book.value, pages);
+      await db.add('sessions', entry);
+      f.min.value = ''; f.pages.value = '';
+      toast((pages ? pages + ' sayfa' : min + ' dk') + ' eklendi');
       return;
     }
     if (kind === 'profile') {
@@ -1370,7 +1395,8 @@ fetch('kitap-bilgi.json', { cache: 'no-store' })
 .then(r => (r.ok ? r.json() : {}))
 .then(j => { KITAP_BILGI = j || {}; if (S.view === 'kitap') render(); })
 .catch(() => {});
-const bilgiOf = b => KITAP_BILGI[b.id] || {};
+// Anahtar kitabın Firestore id'si ya da adının slug'ı olabilir
+const bilgiOf = b => KITAP_BILGI[b.id] || KITAP_BILGI[slug(b.title)] || {};
 function tabAuthor(b) {
 const extra = bilgiOf(b).yazar || {};
 const name = extra.ad || b.author || 'Yazar belirtilmedi';
@@ -1611,9 +1637,10 @@ saveT2();
 setFocusMode(false);
 setRoomSound('off');
 refreshTimer2();
-if (secs >= 60) doneMoment(secs, (bookById(t.bookId) || {}).title);
-if (secs >= 5 && fs) {
-await db.add('sessions', { by: slug(S.me), bookId: t.bookId, seconds: secs, at: nowISO() }).catch(fail);
+const added = secs >= 5 && fs ? db.add('sessions', { by: slug(S.me), bookId: t.bookId, seconds: secs, at: nowISO() }) : null;
+if (secs >= 60) doneMoment(secs, (bookById(t.bookId) || {}).title, added, t.bookId);
+if (added) {
+await added.catch(fail);
 toast(typeof msg === 'string' ? msg : 'Oturum kaydedildi');
 }
 }
@@ -1748,15 +1775,25 @@ document.querySelectorAll(`[data-act="room"][data-kind="${kind}"]`).forEach(b =>
 }
 const todayMin2 = () => { const k = dayKey2(new Date()); return Math.round(mySessions2().filter(s => sessDay2(s) === k).reduce((a, s) => a + (s.seconds || 0), 0) / 60); };
 // Oturum bitince ekranı kısa süre kaplayan büyük an; tıklayınca ya da kendiliğinden kapanır
-function doneMoment(secs, title) {
+function doneMoment(secs, title, added, bookId) {
 const m = Math.round(secs / 60);
 const el = document.createElement('div');
 el.className = 'done-moment';
-el.innerHTML = `<p class="label">Oturum bitti</p><p class="dm-n">${m}<small> dakika</small></p><p class="dm-t">${title ? esc(title) + ' · ' : ''}bugün toplam ${todayMin2() + m} dk</p>`;
+el.innerHTML = `<p class="label">Oturum bitti</p><p class="dm-n">${m}<small> dakika</small></p><p class="dm-t">${title ? esc(title) + ' · ' : ''}bugün toplam ${todayMin2() + m} dk</p>
+<form class="dm-form"><label>Kaç sayfa okudun?<input name="pages" type="number" min="1" max="5000" inputmode="numeric"></label><button type="submit" class="btn">Kaydet</button><button type="button" class="btn ghost" data-skip>Geç</button></form>`;
 const close = () => { el.classList.add('off'); setTimeout(() => el.remove(), 500); };
-el.addEventListener('click', close);
-setTimeout(close, 4500);
+el.querySelector('[data-skip]').addEventListener('click', close);
+el.querySelector('form').addEventListener('submit', e => {
+e.preventDefault();
+const pages = Math.round(Number(e.target.elements.pages.value)) || 0;
+if (pages > 0 && pages <= 5000 && added) {
+syncProgress(bookId, pages);
+added.then(r => db.patch('sessions', r.id, { pages })).catch(fail);
+}
+close();
+});
 document.body.appendChild(el);
+el.querySelector('input').focus();
 }
 function timerBody2() {
 const running = T2 ? bookById(T2.bookId) : null;
@@ -1802,15 +1839,18 @@ return `
 function saveGoal() {
 if (!S.me) return toast('Önce kim olduğunu seç.');
 const v = Math.max(0, Number(document.getElementById('goal-min').value) || 0);
-db.patch('profiles', slug(S.me), { name: S.me, goalMin: v }).then(() => toast('Hedef kaydedildi')).catch(fail);
+db.patch('profiles', slug(S.me), { name: S.me, [S.metricNow === 'pages' ? 'goalPages' : 'goalMin']: v }).then(() => toast('Hedef kaydedildi')).catch(fail);
 }
 // Haftalık dakika hedefi (Takip sayfasında): son 7 günün toplamı hedefle karşılaştırılır
 function weekGoalCard2(mine, prof) {
-const weekSecs = [...Array(7)].map((_, i) => dayKey2(new Date(Date.now() - i * 86400000))).reduce((a, k) => a + mine.filter(s => sessDay2(s) === k).reduce((x, s) => x + (s.seconds || 0), 0), 0);
-const weekMin = Math.round(weekSecs / 60);
-const goal = prof.goalMin || 0;
-const pct = goal ? Math.min(100, Math.round(weekMin / goal * 100)) : 0;
-return `<section class="card"><h3>Haftalık hedef</h3><p class="big">${weekMin}<small> dk</small></p><p class="small muted">${goal ? 'Son 7 gün · hedef ' + goal + ' dk · %' + pct : 'Son 7 gün · henüz hedef yok'}</p><div class="bar goal"><span style="width:${pct}%"></span></div><div class="actions"><input id="goal-min" type="number" min="0" value="${goal || ''}" placeholder="Dakika" style="width:7em"><button type="button" class="btn sm" data-act="gsave">Kaydet</button></div></section>`;
+const pg = S.metricNow === 'pages';
+const keys = [...Array(7)].map((_, i) => dayKey2(new Date(Date.now() - i * 86400000)));
+const week = mine.filter(s => keys.includes(sessDay2(s)));
+const done = pg ? week.reduce((a, s) => a + (s.pages || 0), 0) : Math.round(week.reduce((a, s) => a + (s.seconds || 0), 0) / 60);
+const unit = pg ? 'sayfa' : 'dk';
+const goal = (pg ? prof.goalPages : prof.goalMin) || 0;
+const pct = goal ? Math.min(100, Math.round(done / goal * 100)) : 0;
+return `<section class="card"><h3>Haftalık hedef</h3><p class="big">${done}<small> ${unit}</small></p><p class="small muted">${goal ? 'Son 7 gün · hedef ' + goal + ' ' + unit + ' · %' + pct : 'Son 7 gün · henüz hedef yok'}</p><div class="bar goal"><span style="width:${pct}%"></span></div><div class="actions"><input id="goal-min" type="number" min="0" value="${goal || ''}" placeholder="${pg ? 'Sayfa' : 'Dakika'}" aria-label="Haftalık hedef (${unit})" style="width:7em"><button type="button" class="btn sm" data-act="gsave">Kaydet</button></div></section>`;
 }
 // Takip: kişiye özel okuma alışkanlığı, zamanlayıcı oturumlarından hesaplanır
 const HEAT_WEEKS = 26;
@@ -1818,9 +1858,9 @@ const WEEKDAYS2 = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const WEEKDAYS_LONG2 = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const DAYPARTS2 = [['Sabah', 5, 12], ['Öğleden sonra', 12, 17], ['Akşam', 17, 22], ['Gece', 22, 29]];
 const dk2 = secs => Math.round(secs / 60) + ' dk';
-function barsList2(rows) {
+function barsList2(rows, fmt = dk2) {
 const max = Math.max(1, ...rows.map(r => r[1]));
-return `<ul class="moodbars hbars">${rows.map(([label, secs]) => `<li><span>${esc(label)}</span><span class="bar"><span style="width:${Math.round(secs / max * 100)}%"></span></span><span class="pct">${dk2(secs)}</span></li>`).join('')}</ul>`;
+return `<ul class="moodbars hbars">${rows.map(([label, secs]) => `<li><span>${esc(label)}</span><span class="bar"><span style="width:${Math.round(secs / max * 100)}%"></span></span><span class="pct">${esc(fmt(secs))}</span></li>`).join('')}</ul>`;
 }
 function longestStreak2(keys) {
 let best = 0, run = 0, prev = null;
@@ -1837,60 +1877,108 @@ ensureSessions();
 ensureProfiles();
 if (!S.me) return `<div class="page-head"><h1>Takip</h1></div><div class="card empty"><p class="muted">Önce kim olduğunu seç.</p></div>`;
 const mine = mySessions2();
-const byDay = {};
-mine.forEach(s => { const k = sessDay2(s); if (k) byDay[k] = (byDay[k] || 0) + (s.seconds || 0); });
+// Ölçü: sayfa ya da dakika. Seçim hatırlanır; seçilmediyse sayfa kaydı varsa sayfa gösterilir
+let saved = null;
+try { saved = localStorage.getItem('kulup-metric'); } catch (e) {}
+const pg = (saved || (mine.some(s => s.pages) ? 'pages' : 'min')) === 'pages';
+S.metricNow = pg ? 'pages' : 'min';
+const val = s => (pg ? s.pages || 0 : s.seconds || 0);
+const fmt = v => (pg ? v + ' sayfa' : dk2(v));
+const days = new Set(), byDay = {};
+mine.forEach(s => { const k = sessDay2(s); if (k) { days.add(k); byDay[k] = (byDay[k] || 0) + val(s); } });
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 const dayAt = n => { const d = new Date(today); d.setDate(today.getDate() + n); return d; };
 // Isı haritası: sütunlar hafta (Pazartesi başlar), satırlar gün
 const first = -((today.getDay() + 6) % 7) - 7 * (HEAT_WEEKS - 1);
 const todayIdx = -first;
+const cuts = pg ? [10, 25, 50] : [600, 1200, 2400];
 const cells = [...Array(HEAT_WEEKS * 7)].map((_, i) => {
 const d = dayAt(first + i);
 if (d > today) return '<i class="f"></i>';
-const secs = byDay[dayKey2(d)] || 0;
-const m = secs / 60;
-const lvl = !secs ? 0 : m < 10 ? 1 : m < 20 ? 2 : m < 40 ? 3 : 4;
-return `<button type="button" tabindex="-1" class="l${lvl}${i === todayIdx ? ' now' : ''}" data-act="heatday" data-v="${dayKey2(d)}" title="${esc(d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }))}: ${dk2(secs)}"></button>`;
+const v = byDay[dayKey2(d)] || 0;
+const lvl = !v ? 0 : v < cuts[0] ? 1 : v < cuts[1] ? 2 : v < cuts[2] ? 3 : 4;
+return `<button type="button" tabindex="-1" class="l${lvl}${i === todayIdx ? ' now' : ''}" data-act="heatday" data-v="${dayKey2(d)}" title="${esc(d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }))}: ${esc(fmt(v))}"></button>`;
 }).join('');
-const last30 = [...Array(30)].map((_, i) => byDay[dayKey2(dayAt(-i))] || 0);
-const active30 = last30.filter(Boolean).length;
-const total30 = last30.reduce((a, b) => a + b, 0);
-const parts = DAYPARTS2.map(([label, from, to]) => [label, mine.filter(s => { const h = new Date(s.at).getHours(); const x = h < 5 ? h + 24 : h; return x >= from && x < to; }).reduce((a, s) => a + (s.seconds || 0), 0)]);
-const week = WEEKDAYS2.map((label, i) => [label, mine.filter(s => (new Date(s.at).getDay() + 6) % 7 === i).reduce((a, s) => a + (s.seconds || 0), 0)]);
+const last30 = [...Array(30)].map((_, i) => dayKey2(dayAt(-i)));
+const active30 = last30.filter(k => days.has(k)).length;
+const total30 = last30.reduce((a, k) => a + (byDay[k] || 0), 0);
+const parts = DAYPARTS2.map(([label, from, to]) => [label, mine.filter(s => { const h = new Date(s.at).getHours(); const x = h < 5 ? h + 24 : h; return x >= from && x < to; }).reduce((a, s) => a + val(s), 0)]);
+const week = WEEKDAYS2.map((label, i) => [label, mine.filter(s => (new Date(s.at).getDay() + 6) % 7 === i).reduce((a, s) => a + val(s), 0)]);
 const perBook = {};
-mine.forEach(s => { perBook[s.bookId] = (perBook[s.bookId] || 0) + (s.seconds || 0); });
-const books = Object.entries(perBook).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, secs]) => [(bookById(id) || {}).title || 'Silinmiş kitap', secs]);
+mine.forEach(s => { perBook[s.bookId] = (perBook[s.bookId] || 0) + val(s); });
+const books = Object.entries(perBook).filter(e => e[1]).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, v]) => [(bookById(id) || {}).title || 'Silinmiş kitap', v]);
 const topPart = parts.slice().sort((a, b) => b[1] - a[1])[0];
 const topDay = WEEKDAYS_LONG2[week.indexOf(week.slice().sort((a, b) => b[1] - a[1])[0])];
-const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay)}</b> günleri okuyorsun.` : 'Okuma köşesinde okudukça ya da aşağıdan elle ekledikçe alışkanlıkların burada belirecek.';
+const has = parts.some(x => x[1]);
+const insight = has ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay)}</b> günleri okuyorsun.` : mine.length ? 'Sayfa ekledikçe burası sayfalarına göre şekillenecek.' : 'Okuma köşesinde okudukça ya da aşağıdan elle ekledikçe alışkanlıkların burada belirecek.';
+// Okuma hızı yalnızca hem sayfası hem süresi olan kayıtlardan hesaplanır
+const timed = mine.filter(s => s.pages && s.seconds);
+const speed = timed.length ? Math.round(timed.reduce((a, s) => a + s.pages, 0) / (timed.reduce((a, s) => a + s.seconds, 0) / 3600)) : 0;
+const monthKey = dayKey2(today).slice(0, 7);
+const club = members().map(n => [n, (S.sessions || []).filter(s => s.by === slug(n) && sessDay2(s).startsWith(monthKey)).reduce((a, s) => a + val(s), 0)]).sort((a, b) => b[1] - a[1]);
+const streak = streakDays2(mine), best = longestStreak2([...days]);
 return `
-<div class="page-head"><div><p class="label">Takip</p><h1>Okuma alışkanlığım</h1></div></div>
+<div class="page-head"><div><p class="label">Takip</p><h1>Okuma alışkanlığım</h1></div><div class="seg" role="group" aria-label="Ölçü seç"><button type="button" class="${pg ? 'on' : ''}" data-act="metric" data-v="pages">Sayfa</button><button type="button" class="${pg ? '' : 'on'}" data-act="metric" data-v="min">Dakika</button></div></div>
 <div class="habit">
 <p class="insight">${insight}</p>
+${paceCard2(mine)}
 ${logForm2()}
 ${recapCard2(mine)}
 <div class="stats">
-<div class="stat"><span>Şu anki seri</span><b><span data-count="${streakDays2(mine)}">${streakDays2(mine)}</span> gün</b></div>
-<div class="stat"><span>En uzun seri</span><b><span data-count="${longestStreak2(Object.keys(byDay))}">${longestStreak2(Object.keys(byDay))}</span> gün</b></div>
+<div class="stat"><span>Şu anki seri</span><b><span data-count="${streak}">${streak}</span> gün</b></div>
+<div class="stat"><span>En uzun seri</span><b><span data-count="${best}">${best}</span> gün</b></div>
 <div class="stat"><span>Son 30 gün</span><b><span data-count="${active30}">${active30}</span> gün</b></div>
-<div class="stat"><span>Okunan günlerde ort.</span><b>${active30 ? dk2(total30 / active30) : '–'}</b></div>
+<div class="stat"><span>${pg ? 'Okuma hızın' : 'Okunan günlerde ort.'}</span><b>${pg ? (speed ? speed + ' s/sa' : '–') : active30 ? dk2(total30 / active30) : '–'}</b></div>
 </div>
-<section class="card chart30"><h3>Son 30 gün</h3>${chart30(byDay)}</section>
+<section class="card chart30"><h3>Son 30 gün</h3>${chart30(byDay, pg)}</section>
 <section class="card"><h3>Son ${HEAT_WEEKS} hafta</h3>
 <div class="heat-wrap"><div class="heat-days">${WEEKDAYS2.map((d, i) => `<span>${i % 2 ? '' : d}</span>`).join('')}</div><div class="heat">${cells}</div></div>
 <div class="heat-legend">Az<i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>Çok<span class="heat-hint">Bir güne tıklayınca o gün için kayıt ekleyebilirsin</span></div>
 </section>
 <div class="grid3">
-<section class="card"><h3>Günün saatleri</h3>${barsList2(parts)}</section>
-<section class="card"><h3>Haftanın günleri</h3>${barsList2(week)}</section>
+<section class="card"><h3>Bu ay kulüpte</h3>${barsList2(club, fmt)}</section>
+<section class="card"><h3>Günün saatleri</h3>${barsList2(parts, fmt)}</section>
 ${weekGoalCard2(mine, (S.profiles || {})[slug(S.me)] || {})}
 </div>
-<section class="card"><h3>Kitaplara göre</h3>${books.length ? barsList2(books) : '<p class="muted small">Henüz kayıt yok.</p>'}</section>
+<div class="cols even">
+<section class="card"><h3>Haftanın günleri</h3>${barsList2(week, fmt)}</section>
+<section class="card"><h3>Kitaplara göre</h3>${books.length ? barsList2(books, fmt) : '<p class="muted small">Henüz kayıt yok.</p>'}</section>
+</div>
 ${logList2(mine)}
 </div>`;
 }
-// Elle okuma kaydı: Okuma köşesi dışında okunan süre `sessions` koleksiyonuna `manual: true` ile eklenir
+// Şu an okunan kitabın gidişatı: kalan sayfa, toplantıya yetişmek için gereken günlük sayfa
+function paceCard2(mine) {
+const b = currentBook();
+if (!b) return '';
+const total = Number((b.info || {}).pages) || Number(bilgiOf(b).sayfa) || 0;
+const logged = mine.filter(s => s.bookId === b.id).reduce((a, s) => a + (s.pages || 0), 0);
+const pct = (b.progress || {})[slug(S.me)] || 0;
+const head = `<p class="label">Şu an okuduğun</p><h2 class="pace-t">${emLast(b.title)}</h2>`;
+if (!total) return `<section class="pace">${head}<p class="muted">Kitabın sayfa sayısı girilirse kalan sayfayı ve günlük hedefi burada hesaplarım. <button type="button" class="linkbtn" data-act="open" data-id="${esc(b.id)}" data-tab="bilgi">Kitabı aç</button></p></section>`;
+const read = Math.min(total, Math.max(logged, Math.round(pct / 100 * total)));
+const left = total - read;
+const d = b.meetingDate ? daysUntil(b.meetingDate) : null;
+const week = [...Array(7)].map((_, i) => dayKey2(new Date(Date.now() - i * 86400000)));
+const perDay = Math.round(mine.filter(s => week.includes(sessDay2(s))).reduce((a, s) => a + (s.pages || 0), 0) / 7);
+const need = d > 0 ? Math.ceil(left / d) : 0;
+const line = !left ? 'Kitabı bitirdin.' : d > 0 ? `Toplantıya ${d} gün var; günde <b>${need} sayfa</b> okursan yetişirsin.${perDay ? ` Son 7 günde günde ortalama ${perDay} sayfa okudun.` : ''}` : perDay ? `Bu hızla yaklaşık <b>${Math.ceil(left / perDay)} günde</b> bitirirsin.` : 'Sayfa ekledikçe bitiş tahminin burada görünecek.';
+return `<section class="pace">${head}
+<div class="pace-nums"><b><span data-count="${read}">${read}</span><small> / ${total} sayfa</small></b><b class="pace-left"><span data-count="${left}">${left}</span><small> sayfa kaldı</small></b></div>
+<div class="pace-bar" role="img" aria-label="Kitabın yüzde ${Math.round(read / total * 100)} kadarı okundu"><span style="width:${read / total * 100}%"></span></div>
+<p class="pace-line">${line}</p>
+</section>`;
+}
+// Sayfa eklenince kitaptaki kişisel ilerleme de güncellenir; yalnızca ileri gider, elle girilen yüksek değer korunur
+function syncProgress(bookId, added) {
+const b = bookById(bookId), total = Number(((b || {}).info || {}).pages);
+if (!total || !added) return;
+const sum = mySessions2().filter(s => s.bookId === bookId).reduce((a, s) => a + (s.pages || 0), 0) + added;
+const pct = Math.min(100, Math.round(sum / total * 100)), k = slug(S.me);
+if (pct > ((b.progress || {})[k] || 0)) db.patch('books', bookId, { progress: { [k]: pct } }).catch(fail);
+}
+// Elle okuma kaydı: Okuma köşesi dışında okunan sayfa ve süre `sessions` koleksiyonuna `manual: true` ile eklenir
 function logForm2() {
 const list = S.books.filter(b => b.status !== 'birakildi');
 if (!list.length) return '';
@@ -1900,21 +1988,23 @@ const time = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinut
 const opts = list.map(b => `<option value="${esc(b.id)}"${cur && b.id === cur.id ? ' selected' : ''}>${esc(b.title)}</option>`).join('');
 return `<form class="card logform" id="log-form" data-form="log">
 <h3>Okuduğunu ekle</h3>
-<p class="muted small">Okuma köşesi dışında okuduysan buraya yaz; seri ve grafikler buna göre güncellenir.</p>
+<p class="muted small">Okuma köşesi dışında okuduysan buraya yaz. Sayfa ya da süreden birini girmen yeterli.</p>
 <div class="log-grid">
 <label>Kitap<select name="book">${opts}</select></label>
-<label>Süre (dk)<input name="min" type="number" min="1" max="1440" inputmode="numeric" placeholder="45" required></label>
+<label>Sayfa<input name="pages" type="number" min="1" max="5000" inputmode="numeric" placeholder="25"></label>
+<label>Süre (dk)<input name="min" type="number" min="1" max="1440" inputmode="numeric" placeholder="45"></label>
 <label>Tarih<input name="day" type="date" max="${dayKey2(now)}" value="${dayKey2(now)}" required></label>
 <label>Saat<input name="time" type="time" value="${time}"></label>
 </div>
-<div class="log-foot"><div class="qmins" role="group" aria-label="Hızlı süre seç">${[15, 30, 45, 60, 90].map(m => `<button type="button" data-act="logmin" data-v="${m}">${m}</button>`).join('')}</div><button type="submit" class="btn">Kaydet</button></div>
+<div class="log-foot"><div class="qmins" role="group" aria-label="Hızlı sayfa seç">${[10, 20, 30, 50, 100].map(m => `<button type="button" data-act="logpg" data-v="${m}">${m}</button>`).join('')}<span class="muted small">sayfa</span></div><button type="submit" class="btn">Kaydet</button></div>
 </form>`;
 }
 function logList2(mine) {
 if (!mine.length) return '';
 const shown = S.logAll ? mine : mine.slice(0, 8);
+const amount = s => [s.pages ? s.pages + ' sayfa' : '', s.seconds ? dk2(s.seconds) : ''].filter(Boolean).join(' · ');
 return `<section class="card"><h3>Kayıtlarım</h3>
-<ul class="loglist">${shown.map(s => `<li><span class="ll-d">${esc(dateTR(s.at, { day: 'numeric', month: 'short' }))}<small>${esc(new Date(s.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }))}</small></span><span class="ll-t">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}${s.manual ? '<em>elle</em>' : ''}</span><b>${dk2(s.seconds || 0)}</b><button type="button" class="del${S.armed === s.id ? ' armed' : ''}" data-act="del" data-col="sessions" data-id="${esc(s.id)}">${S.armed === s.id ? 'Silinsin mi?' : 'Sil'}</button></li>`).join('')}</ul>
+<ul class="loglist">${shown.map(s => `<li><span class="ll-d">${esc(dateTR(s.at, { day: 'numeric', month: 'short' }))}<small>${esc(new Date(s.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }))}</small></span><span class="ll-t">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}${s.manual ? '<em>elle</em>' : ''}</span><b>${esc(amount(s))}</b><button type="button" class="del${S.armed === s.id ? ' armed' : ''}" data-act="del" data-col="sessions" data-id="${esc(s.id)}">${S.armed === s.id ? 'Silinsin mi?' : 'Sil'}</button></li>`).join('')}</ul>
 ${mine.length > shown.length ? `<button type="button" class="linkbtn" data-act="logall">Tümünü göster (${mine.length})</button>` : ''}
 </section>`;
 }
@@ -1983,6 +2073,7 @@ function recapData2(mine, back) {
     key,
     label: m.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
     total,
+    pages: list.reduce((a, s) => a + (s.pages || 0), 0),
     days: new Set(list.map(sessDay2)).size,
     sessions: list.length,
     longest: Math.max(0, ...list.map(s => s.seconds || 0)),
@@ -1996,7 +2087,7 @@ function recapCard2(mine) {
   const d = recapData2(mine, S.recapBack || 0);
   const rows = [
     ['Okunan gün', d.days + ' gün'],
-    ['Oturum', String(d.sessions)],
+    [S.metricNow === 'pages' ? 'Süre' : 'Sayfa', S.metricNow === 'pages' ? (d.total ? hoursText(d.total) : '–') : (d.pages ? d.pages + ' sayfa' : '–')],
     ['En uzun oturum', d.longest ? dk2(d.longest) : '–'],
     ['En sevdiğin gün', d.topDay || '–'],
   ];
@@ -2008,13 +2099,13 @@ function recapCard2(mine) {
     <div class="recap-body">
       ${illus('cozy', 'recap-art')}
       <div class="recap-main">
-        <p class="recap-big">${d.total ? esc(hoursText(d.total)) : 'Henüz okuma yok'}</p>
-        <p class="muted">${d.total ? 'okudun' + (d.topBook ? `, en çok <b>${esc(d.topBook)}</b>` : '') : 'Okuduğunu ekledikçe burası dolacak.'}</p>
+        <p class="recap-big">${d.pages && (S.metricNow === 'pages' || !d.total) ? d.pages + ' sayfa' : d.total ? esc(hoursText(d.total)) : 'Henüz okuma yok'}</p>
+        <p class="muted">${d.total || d.pages ? 'okudun' + (d.topBook ? `, en çok <b>${esc(d.topBook)}</b>` : '') : 'Okuduğunu ekledikçe burası dolacak.'}</p>
         ${d.finished.length ? `<p class="small">Bitirilen: ${d.finished.map(esc).join(', ')}</p>` : ''}
       </div>
     </div>
     <dl class="facts recap-facts">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
-    <div class="actions"><button type="button" class="btn sm" data-act="recapshare"${d.total ? '' : ' disabled'}>Paylaş</button><span class="muted small">Resim olarak kaydet ya da gönder</span></div>
+    <div class="actions"><button type="button" class="btn sm" data-act="recapshare"${d.total || d.pages ? '' : ' disabled'}>Paylaş</button><span class="muted small">Resim olarak kaydet ya da gönder</span></div>
   </section>`;
 }
 // Özeti 1080x1350 bir resme çizer; telefonda paylaşım menüsü, bilgisayarda indirme
@@ -2035,7 +2126,7 @@ async function shareRecap() {
   g.fillStyle = '#e8341c'; g.font = '600 34px "Instrument Sans", Geist, sans-serif';
   g.fillText('KİTAP KULÜBÜ · ' + d.label.toLocaleUpperCase('tr-TR'), 540, 530);
   g.fillStyle = '#1b1b1f'; g.font = '500 136px "Bodoni Moda", Georgia, serif';
-  g.fillText(hoursText(d.total), 540, 680);
+  g.fillText(d.pages ? d.pages + ' sayfa' : hoursText(d.total), 540, 680);
   g.fillStyle = '#6b6b73'; g.font = '400 40px "Instrument Sans", Geist, sans-serif';
   g.fillText(S.me + (S.recapBack ? ' geçen ay okudu' : ' bu ay okudu'), 540, 750);
   const facts = [['Okunan gün', d.days], ['Oturum', d.sessions], ['En uzun', dk2(d.longest)], ['En sevdiği gün', d.topDay || '–']];
@@ -2195,10 +2286,11 @@ document.addEventListener('pointermove', e => {
   tip.textContent = r.dataset.tip;
   tip.style.left = Math.max(40, Math.min(box.width - 40, b.left - box.left + b.width / 2)) + 'px';
 });
-function chart30(byDay) {
+function chart30(byDay, pages) {
   const n = 30, W = 640, H = 190, P = 18;
   const days = [...Array(n)].map((_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (n - 1 - i)); return d; });
-  const vals = days.map(d => Math.round((byDay[dayKey2(d)] || 0) / 60));
+  const vals = days.map(d => Math.round((byDay[dayKey2(d)] || 0) / (pages ? 1 : 60)));
+  const unit = pages ? 'sayfa' : 'dk';
   const max = Math.max(30, ...vals);
   const pts = vals.map((v, i) => [P + i * (W - 2 * P) / (n - 1), H - P - v / max * (H - 2 * P)]);
   let line = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
@@ -2213,14 +2305,14 @@ function chart30(byDay) {
   const avg = active.length ? Math.round(active.reduce((a, b) => a + b, 0) / active.length) : 0;
   const avgY = H - P - avg / max * (H - 2 * P);
   const lbl = d => d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-  return `<svg class="c30" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Son 30 günde günlük okuma dakikaları">
+  return `<svg class="c30" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Son 30 günde günlük okuma (${unit})">
     <defs><linearGradient id="g30" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".35"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
     ${avg ? `<line x1="${P}" x2="${W - P}" y1="${avgY.toFixed(1)}" y2="${avgY.toFixed(1)}" class="c30-avg"/>` : ''}
     <path d="${area}" fill="url(#g30)" class="c30-area"/>
     <path d="${line}" class="c30-line" pathLength="1"/>
-    ${pts.map((p, i) => `<rect x="${(p[0] - (W - 2 * P) / (n - 1) / 2).toFixed(1)}" y="0" width="${((W - 2 * P) / (n - 1)).toFixed(1)}" height="${H}" fill="transparent" data-tip="${esc(lbl(days[i]))}: ${vals[i]} dk"></rect>`).join('')}
+    ${pts.map((p, i) => `<rect x="${(p[0] - (W - 2 * P) / (n - 1) / 2).toFixed(1)}" y="0" width="${((W - 2 * P) / (n - 1)).toFixed(1)}" height="${H}" fill="transparent" data-tip="${esc(lbl(days[i]))}: ${vals[i]} ${unit}"></rect>`).join('')}
   </svg>
-  <div class="c30-tip" hidden></div><div class="c30-axis"><span>${lbl(days[0])}</span><span>${avg ? 'okuduğun günlerde ortalama ' + avg + ' dk' : ''}</span><span>bugün</span></div>`;
+  <div class="c30-tip" hidden></div><div class="c30-axis"><span>${lbl(days[0])}</span><span>${avg ? 'okuduğun günlerde ortalama ' + avg + ' ' + unit : ''}</span><span>bugün</span></div>`;
 }
 
 // Rozetler: oturum ve kitap verisinden hesaplanır, kazanılmayanlar soluk görünür

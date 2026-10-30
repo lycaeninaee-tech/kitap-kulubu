@@ -1078,3 +1078,35 @@ body.focus-mode .dragging .mdrag { cursor: grabbing; }
 .loglist b { font-variant-numeric: tabular-nums; font-size: 14px; }
 @media (max-width: 460px) { .loglist li { grid-template-columns: 4.6em minmax(0, 1fr) auto; } .loglist .del { grid-column: 2 / -1; justify-self: end; } }
 .stat b span { font: inherit; color: inherit; letter-spacing: inherit; }
+
+/* Takip: sayfa takibi ve kitap gidişatı */
+.pace { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--rule); min-width: 0; }
+.pace p { margin: 0; }
+.pace-t { font-size: clamp(44px, 7vw, 92px); line-height: 0.9; letter-spacing: -0.04em; }
+.pace-t em { font-style: italic; color: var(--accent); }
+.pace-nums { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; margin-top: 8px; }
+.pace-nums b { font-family: var(--font-display); font-size: clamp(44px, 6vw, 80px); font-weight: 500; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.pace-nums small { font-family: var(--font-body); font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--muted); }
+.pace-left { color: var(--accent); }
+.pace-bar { height: 10px; background: var(--sunk); overflow: hidden; }
+.pace-bar span { display: block; height: 100%; background: var(--accent); transform-origin: left; animation: grow 1.4s var(--ease-out) both; }
+.pace-line { font-size: 16px; color: var(--muted); }
+.pace-line b { color: var(--ink); }
+.log-grid { grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)); }
+.qmins { align-items: center; }
+.hbars li { grid-template-columns: minmax(0, 7em) minmax(0, 1fr) 5.4em; }
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.loglist b { white-space: nowrap; }
+.dm-form { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: 8px; margin-top: 18px; color: #ffffff; }
+.dm-form label { color: inherit; text-align: left; }
+.dm-form input { width: 9em; background: #ffffff; color: var(--ink); border: 0; border-radius: 2px; }
+.dm-form .btn { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.dm-form .btn.ghost { background: transparent; border-color: #ffffff; color: #ffffff; }
+.done-moment { cursor: default; }
+@media (max-width: 760px) { .log-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .log-grid label:first-child { grid-column: 1 / -1; } }
+@media (max-width: 460px) { .loglist li { grid-template-columns: 4.6em minmax(0, 1fr); } .loglist b { grid-column: 2; } .loglist .del { grid-column: 2; justify-self: start; } }
+@media (prefers-reduced-motion: reduce) { .pace-bar span { animation: none; } }
+/* Kitaba özel soru önerileri */
+.sugg-q { display: grid; gap: 10px; margin: 14px 0; padding-top: 14px; border-top: 1px solid var(--rule); justify-items: start; }
+.sugg-q ul { list-style: none; margin: 0; padding: 0; width: 100%; }
+.sugg-q li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
