@@ -19,7 +19,7 @@
 - `style.css`: tema değişkenleri `:root` içinde. Dosyanın sonunda lofi dokunuşları, zamanlayıcı ve profil grafiği stilleri var.
 - `config.js`: Firebase ayarları, üyeler, izleyiciler, isteğe bağlı Google Books anahtarı.
 - `kitap-bilgi.json`: kitap sayfasındaki Bilgi ve Yazar sekmeleri için elle yazılmış bilgiler. Anahtar, Firestore'daki kitap id'si.
-- `sw.js`: ağ öncelikli önbellek. İstekler `cache: 'no-cache'` ile gider, yani GitHub Pages'in 10 dakikalık önbelleğine takılmadan her açılışta sunucuya sorulur; çevrimdışıyken kayıtlı kopya kullanılır. Yeni service worker devreye girince `index.html` sayfayı bir kez yeniler. Kabuk dosyaları değişince yine de `CACHE` sürümünü artır (şu an `kulup-v17`).
+- `sw.js`: ağ öncelikli önbellek. İstekler `cache: 'no-cache'` ile gider, yani GitHub Pages'in 10 dakikalık önbelleğine takılmadan her açılışta sunucuya sorulur; çevrimdışıyken kayıtlı kopya kullanılır. Yeni service worker devreye girince `index.html` sayfayı bir kez yeniler. Kabuk dosyaları değişince yine de `CACHE` sürümünü artır (şu an `kulup-v18`).
 - `manifest.webmanifest`, `icon.svg`: PWA olarak ana ekrana eklenebilir.
 - `tasima.json`: eski Claude artifact'ından taşınan veri. Bir kez içe aktarıldı, artık gerekmiyor.
 
@@ -28,7 +28,7 @@
 - `books` (+ alt koleksiyon `books/{id}/notes`): kitaplar. Durum değerleri: `sirada`, `okunuyor`, `tamamlandi`, `birakildi`.
 - `books/{id}/photos`: toplantı fotoğrafları `{ by, data (JPEG data URL, en çok ~1200 px), at }`; kitabın Toplantı sekmesinde polaroid duvarı (`albumHTML`), ana sayfada film şeridi (`filmStrip`), tıklayınca büyük görünüm (`openLightbox`).
 - `suggestions`: kitap önerileri ve oylar. Eklenince `lookupSugg` kapak (`coverUrl`), `info` ve tanıtım (`desc`) bulur. "Kitaplığa ekle" (`adopt`) bunları "Sırada" durumundaki yeni kitaba taşır.
-- `sessions`: okuma oturumları `{ by: üye-slug, bookId, seconds, at: ISO tarih }`.
+- `sessions`: okuma oturumları `{ by: üye-slug, bookId, seconds, at: ISO tarih, manual? }`. `manual: true` Takip sayfasından elle eklenenler (`logForm2`, `data-form="log"`); kayıtlar `logList2` ile silinir. Isı haritasında güne tıklamak formun tarihini doldurur (`heatday`).
 - `profiles/{üye-slug}`: `{ name, music, goalMin, bio, genres, favBook, favAuthor, quote, yearGoal }` (müzik, haftalık dakika hedefi ve kişisel profil bilgileri).
 
 ## Sayfalar (`VIEWS`)
@@ -36,7 +36,7 @@
 Bu ay, Kitaplık, Öneriler, Profilim (`viewProfile2`), Okuma köşesi (`viewTimer2`, adres `#zamanlayici`), Takip (`viewHabit`).
 
 - Profilim: kişisel sayfa. Hakkımda, sevilen türler, favoriler, yıllık kitap hedefi, şu an okunanlar, seçilen ve puanlanan kitaplar. Üyeler birbirinin profilini görür (`S.profileOf`), sadece kendininkini düzenler (`profileForm2`). Sayısal istatistik burada yok, Takip'te.
-- Takip: kişiye özel alışkanlık sayfası. `sessions` verisinden aylık özet, seriler, son 18 haftanın ısı haritası, günün saatleri, haftanın günleri, haftalık dakika hedefi (`weekGoalCard2`) ve kitap başına süre hesaplanır.
+- Takip: kişiye özel alışkanlık sayfası. `sessions` verisinden aylık özet, seriler, son 26 haftanın ısı haritası, günün saatleri, haftanın günleri, haftalık dakika hedefi (`weekGoalCard2`) ve kitap başına süre hesaplanır.
 - Sayfa geçişleri `go()` ile `history.pushState` kullanır; tarayıcının geri tuşu `popstate` ile önceki sayfaya döner.
 - Kitap sayfasındaki "Kitabı düzenle" formu (`bookEditForm`, `data-form="bookedit"`) ad, yazar, seçen, ay, durum ve künyeyi tek seferde günceller.
 - Takip sayfasının başında aylık özet kartı (`recapCard2`) var; "Paylaş" (`shareRecap`) özeti 1080x1350 PNG olarak çizip paylaşır ya da indirir.

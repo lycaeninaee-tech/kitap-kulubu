@@ -1100,6 +1100,13 @@ document.addEventListener('click', e => {
     case 'tab': slideTab(el.dataset.tab); break;
     case 'room': setRoomOption(el.dataset.kind, el.dataset.v); break;
     case 'yt': ytCommand(el.dataset.f); break;
+    case 'logmin': { const inp = document.querySelector('#log-form [name="min"]'); if (inp) inp.value = el.dataset.v; break; }
+    case 'logall': S.logAll = true; render(); break;
+    case 'heatday': {
+      const form = document.getElementById('log-form');
+      if (form) { form.elements.day.value = el.dataset.v; form.scrollIntoView({ behavior: 'smooth', block: 'center' }); form.elements.min.focus({ preventScroll: true }); }
+      break;
+    }
     case 'toggle-add': S.showAdd = !S.showAdd; if (S.view !== 'kitaplik') go('kitaplik'); else render(); break;
     case 'filter': S.ownFilter = el.dataset.f; render(); break;
     case 'shelf': S.shelfFilter = el.dataset.f; render(); break;
@@ -1235,6 +1242,19 @@ document.addEventListener('submit', async e => {
       Object.assign(S, { newPhoto: null, photoMsg: '' });
       form.reset();
       await newBook(data, photo);
+      return;
+    }
+    if (kind === 'log') {
+      const min = Math.round(Number(f.min.value));
+      if (!(min >= 1 && min <= 1440)) return toast('Süreyi 1 ile 1440 dakika arasında yaz.');
+      const at = new Date(`${f.day.value}T${f.time.value || '12:00'}:00`);
+      const now = new Date();
+      if (isNaN(at)) return toast('Tarihi kontrol et.');
+      if (dayKey2(at) > dayKey2(now)) return toast('İleri tarihli kayıt eklenemez.');
+      if (at > now) at.setTime(now.getTime());
+      await db.add('sessions', { by: slug(S.me), bookId: f.book.value, seconds: min * 60, at: at.toISOString(), manual: true });
+      f.min.value = '';
+      toast(min + ' dk eklendi');
       return;
     }
     if (kind === 'profile') {
@@ -1793,7 +1813,7 @@ const pct = goal ? Math.min(100, Math.round(weekMin / goal * 100)) : 0;
 return `<section class="card"><h3>Haftalık hedef</h3><p class="big">${weekMin}<small> dk</small></p><p class="small muted">${goal ? 'Son 7 gün · hedef ' + goal + ' dk · %' + pct : 'Son 7 gün · henüz hedef yok'}</p><div class="bar goal"><span style="width:${pct}%"></span></div><div class="actions"><input id="goal-min" type="number" min="0" value="${goal || ''}" placeholder="Dakika" style="width:7em"><button type="button" class="btn sm" data-act="gsave">Kaydet</button></div></section>`;
 }
 // Takip: kişiye özel okuma alışkanlığı, zamanlayıcı oturumlarından hesaplanır
-const HEAT_WEEKS = 18;
+const HEAT_WEEKS = 26;
 const WEEKDAYS2 = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const WEEKDAYS_LONG2 = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const DAYPARTS2 = [['Sabah', 5, 12], ['Öğleden sonra', 12, 17], ['Akşam', 17, 22], ['Gece', 22, 29]];
@@ -1824,13 +1844,14 @@ today.setHours(0, 0, 0, 0);
 const dayAt = n => { const d = new Date(today); d.setDate(today.getDate() + n); return d; };
 // Isı haritası: sütunlar hafta (Pazartesi başlar), satırlar gün
 const first = -((today.getDay() + 6) % 7) - 7 * (HEAT_WEEKS - 1);
+const todayIdx = -first;
 const cells = [...Array(HEAT_WEEKS * 7)].map((_, i) => {
 const d = dayAt(first + i);
 if (d > today) return '<i class="f"></i>';
 const secs = byDay[dayKey2(d)] || 0;
 const m = secs / 60;
 const lvl = !secs ? 0 : m < 10 ? 1 : m < 20 ? 2 : m < 40 ? 3 : 4;
-return `<i class="l${lvl}" title="${esc(d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }))}: ${dk2(secs)}"></i>`;
+return `<button type="button" tabindex="-1" class="l${lvl}${i === todayIdx ? ' now' : ''}" data-act="heatday" data-v="${dayKey2(d)}" title="${esc(d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }))}: ${dk2(secs)}"></button>`;
 }).join('');
 const last30 = [...Array(30)].map((_, i) => byDay[dayKey2(dayAt(-i))] || 0);
 const active30 = last30.filter(Boolean).length;
@@ -1842,30 +1863,61 @@ mine.forEach(s => { perBook[s.bookId] = (perBook[s.bookId] || 0) + (s.seconds ||
 const books = Object.entries(perBook).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, secs]) => [(bookById(id) || {}).title || 'Silinmiş kitap', secs]);
 const topPart = parts.slice().sort((a, b) => b[1] - a[1])[0];
 const topDay = WEEKDAYS_LONG2[week.indexOf(week.slice().sort((a, b) => b[1] - a[1])[0])];
-const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay)}</b> günleri okuyorsun.` : 'Okuma köşesinde zamanlayıcıyla okudukça alışkanlıkların burada belirecek.';
+const insight = mine.length ? `En çok <b>${esc(topPart[0].toLocaleLowerCase('tr-TR'))}</b> saatlerinde ve <b>${esc(topDay)}</b> günleri okuyorsun.` : 'Okuma köşesinde okudukça ya da aşağıdan elle ekledikçe alışkanlıkların burada belirecek.';
 return `
 <div class="page-head"><div><p class="label">Takip</p><h1>Okuma alışkanlığım</h1></div></div>
-<p class="muted">${insight}</p>
+<div class="habit">
+<p class="insight">${insight}</p>
+${logForm2()}
 ${recapCard2(mine)}
 <div class="stats">
-<div class="stat"><span>Şu anki seri</span><b>${streakDays2(mine)} gün</b></div>
-<div class="stat"><span>En uzun seri</span><b>${longestStreak2(Object.keys(byDay))} gün</b></div>
-<div class="stat"><span>Son 30 gün</span><b>${active30} gün</b></div>
+<div class="stat"><span>Şu anki seri</span><b><span data-count="${streakDays2(mine)}">${streakDays2(mine)}</span> gün</b></div>
+<div class="stat"><span>En uzun seri</span><b><span data-count="${longestStreak2(Object.keys(byDay))}">${longestStreak2(Object.keys(byDay))}</span> gün</b></div>
+<div class="stat"><span>Son 30 gün</span><b><span data-count="${active30}">${active30}</span> gün</b></div>
 <div class="stat"><span>Okunan günlerde ort.</span><b>${active30 ? dk2(total30 / active30) : '–'}</b></div>
 </div>
 <section class="card chart30"><h3>Son 30 gün</h3>${chart30(byDay)}</section>
 <section class="card"><h3>Son ${HEAT_WEEKS} hafta</h3>
 <div class="heat-wrap"><div class="heat-days">${WEEKDAYS2.map((d, i) => `<span>${i % 2 ? '' : d}</span>`).join('')}</div><div class="heat">${cells}</div></div>
-<div class="heat-legend">Az<i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>Çok</div>
+<div class="heat-legend">Az<i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>Çok<span class="heat-hint">Bir güne tıklayınca o gün için kayıt ekleyebilirsin</span></div>
 </section>
 <div class="grid3">
 <section class="card"><h3>Günün saatleri</h3>${barsList2(parts)}</section>
 <section class="card"><h3>Haftanın günleri</h3>${barsList2(week)}</section>
 ${weekGoalCard2(mine, (S.profiles || {})[slug(S.me)] || {})}
 </div>
-<section class="card"><h3>Kitaplara göre</h3>${books.length ? barsList2(books) : '<p class="muted small">Henüz oturum yok.</p>'}</section>`;
+<section class="card"><h3>Kitaplara göre</h3>${books.length ? barsList2(books) : '<p class="muted small">Henüz kayıt yok.</p>'}</section>
+${logList2(mine)}
+</div>`;
 }
-
+// Elle okuma kaydı: Okuma köşesi dışında okunan süre `sessions` koleksiyonuna `manual: true` ile eklenir
+function logForm2() {
+const list = S.books.filter(b => b.status !== 'birakildi');
+if (!list.length) return '';
+const cur = currentBook();
+const now = new Date();
+const time = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+const opts = list.map(b => `<option value="${esc(b.id)}"${cur && b.id === cur.id ? ' selected' : ''}>${esc(b.title)}</option>`).join('');
+return `<form class="card logform" id="log-form" data-form="log">
+<h3>Okuduğunu ekle</h3>
+<p class="muted small">Okuma köşesi dışında okuduysan buraya yaz; seri ve grafikler buna göre güncellenir.</p>
+<div class="log-grid">
+<label>Kitap<select name="book">${opts}</select></label>
+<label>Süre (dk)<input name="min" type="number" min="1" max="1440" inputmode="numeric" placeholder="45" required></label>
+<label>Tarih<input name="day" type="date" max="${dayKey2(now)}" value="${dayKey2(now)}" required></label>
+<label>Saat<input name="time" type="time" value="${time}"></label>
+</div>
+<div class="log-foot"><div class="qmins" role="group" aria-label="Hızlı süre seç">${[15, 30, 45, 60, 90].map(m => `<button type="button" data-act="logmin" data-v="${m}">${m}</button>`).join('')}</div><button type="submit" class="btn">Kaydet</button></div>
+</form>`;
+}
+function logList2(mine) {
+if (!mine.length) return '';
+const shown = S.logAll ? mine : mine.slice(0, 8);
+return `<section class="card"><h3>Kayıtlarım</h3>
+<ul class="loglist">${shown.map(s => `<li><span class="ll-d">${esc(dateTR(s.at, { day: 'numeric', month: 'short' }))}<small>${esc(new Date(s.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }))}</small></span><span class="ll-t">${esc((bookById(s.bookId) || {}).title || 'Silinmiş kitap')}${s.manual ? '<em>elle</em>' : ''}</span><b>${dk2(s.seconds || 0)}</b><button type="button" class="del${S.armed === s.id ? ' armed' : ''}" data-act="del" data-col="sessions" data-id="${esc(s.id)}">${S.armed === s.id ? 'Silinsin mi?' : 'Sil'}</button></li>`).join('')}</ul>
+${mine.length > shown.length ? `<button type="button" class="linkbtn" data-act="logall">Tümünü göster (${mine.length})</button>` : ''}
+</section>`;
+}
 // El çizimi illüstrasyonlar: mürekkep çizgisi + birkaç sıcak renk lekesi (Margins esintisi)
 const INK = '#1f1a16';
 const ILLUS = {
@@ -1957,7 +2009,7 @@ function recapCard2(mine) {
       ${illus('cozy', 'recap-art')}
       <div class="recap-main">
         <p class="recap-big">${d.total ? esc(hoursText(d.total)) : 'Henüz okuma yok'}</p>
-        <p class="muted">${d.total ? 'okudun' + (d.topBook ? `, en çok <b>${esc(d.topBook)}</b>` : '') : 'Okuma köşesinde zamanlayıcıyla okudukça burası dolacak.'}</p>
+        <p class="muted">${d.total ? 'okudun' + (d.topBook ? `, en çok <b>${esc(d.topBook)}</b>` : '') : 'Okuduğunu ekledikçe burası dolacak.'}</p>
         ${d.finished.length ? `<p class="small">Bitirilen: ${d.finished.map(esc).join(', ')}</p>` : ''}
       </div>
     </div>
@@ -2132,6 +2184,17 @@ if (window.matchMedia && matchMedia('(hover: hover)').matches) {
   }, { passive: true });
 }
 // Takip: son 30 günün dakikaları, yumuşak eğri + degrade alan; çizgi ekrana girince çizilerek gelir
+// Grafikte gün üzerine gelince küçük bir etiket görünür
+document.addEventListener('pointermove', e => {
+  const tip = document.querySelector('.c30-tip');
+  if (!tip) return;
+  const r = e.target.closest ? e.target.closest('[data-tip]') : null;
+  tip.hidden = !r;
+  if (!r) return;
+  const box = tip.parentElement.getBoundingClientRect(), b = r.getBoundingClientRect();
+  tip.textContent = r.dataset.tip;
+  tip.style.left = Math.max(40, Math.min(box.width - 40, b.left - box.left + b.width / 2)) + 'px';
+});
 function chart30(byDay) {
   const n = 30, W = 640, H = 190, P = 18;
   const days = [...Array(n)].map((_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (n - 1 - i)); return d; });
@@ -2155,9 +2218,9 @@ function chart30(byDay) {
     ${avg ? `<line x1="${P}" x2="${W - P}" y1="${avgY.toFixed(1)}" y2="${avgY.toFixed(1)}" class="c30-avg"/>` : ''}
     <path d="${area}" fill="url(#g30)" class="c30-area"/>
     <path d="${line}" class="c30-line" pathLength="1"/>
-    ${pts.map((p, i) => `<rect x="${(p[0] - (W - 2 * P) / (n - 1) / 2).toFixed(1)}" y="0" width="${((W - 2 * P) / (n - 1)).toFixed(1)}" height="${H}" fill="transparent"><title>${lbl(days[i])}: ${vals[i]} dk</title></rect>`).join('')}
+    ${pts.map((p, i) => `<rect x="${(p[0] - (W - 2 * P) / (n - 1) / 2).toFixed(1)}" y="0" width="${((W - 2 * P) / (n - 1)).toFixed(1)}" height="${H}" fill="transparent" data-tip="${esc(lbl(days[i]))}: ${vals[i]} dk"></rect>`).join('')}
   </svg>
-  <div class="c30-axis"><span>${lbl(days[0])}</span><span>${avg ? 'okuduğun günlerde ortalama ' + avg + ' dk' : ''}</span><span>bugün</span></div>`;
+  <div class="c30-tip" hidden></div><div class="c30-axis"><span>${lbl(days[0])}</span><span>${avg ? 'okuduğun günlerde ortalama ' + avg + ' dk' : ''}</span><span>bugün</span></div>`;
 }
 
 // Rozetler: oturum ve kitap verisinden hesaplanır, kazanılmayanlar soluk görünür
