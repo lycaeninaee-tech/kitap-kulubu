@@ -1099,6 +1099,7 @@ document.addEventListener('click', e => {
     case 'back': go('kitaplik'); break;
     case 'tab': slideTab(el.dataset.tab); break;
     case 'room': setRoomOption(el.dataset.kind, el.dataset.v); break;
+    case 'yt': ytCommand(el.dataset.f); break;
     case 'toggle-add': S.showAdd = !S.showAdd; if (S.view !== 'kitaplik') go('kitaplik'); else render(); break;
     case 'filter': S.ownFilter = el.dataset.f; render(); break;
     case 'shelf': S.shelfFilter = el.dataset.f; render(); break;
@@ -1396,16 +1397,78 @@ if (PROFILE_SUB || !fs) return;
 PROFILE_SUB = true;
 onSnapshot(collection(fs, 'profiles'), snap => { S.profiles = Object.fromEntries(snap.docs.filter(d => d.exists()).map(d => ({ ...d.data(), id: d.id })).map(d => [d.id, d])); if (S.view === 'profil') render(); });
 }
+// Müzik çalar: videosuz, sade bir şerit. Spotify kendi kompakt çalarını kullanır; YouTube'un videosu görünmez, düğmeler onu postMessage ile yönetir.
+const mDrag = () => '<button type="button" class="mdrag" id="music-drag" aria-label="Müzik çaları taşı (ok tuşlarıyla da olur)"><span aria-hidden="true">⠿</span>Müzik</button>';
 function musicEmbed(url) {
 if (!url) return '';
 const sp = url.match(/open\.spotify\.com\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/);
-if (sp) return `<iframe src="https://open.spotify.com/embed/${sp[1]}/${sp[2]}" width="100%" height="152" frameborder="0" allow="encrypted-media" loading="lazy"></iframe>`;
-const vid = url.match(/[?&]v=([\w-]{11})|youtu\.be\/([\w-]{11})/);
+if (sp) return `<div class="mplayer">${mDrag()}<iframe src="https://open.spotify.com/embed/${sp[1]}/${sp[2]}" width="100%" height="80" frameborder="0" allow="autoplay; encrypted-media" loading="lazy"></iframe></div>`;
+const vid = (url.match(/[?&]v=([\w-]{11})|youtu\.be\/([\w-]{11})/) || []).slice(1).find(Boolean);
 const list = (url.match(/list=([\w-]+)/) || [])[1];
-if (vid) return `<iframe src="https://www.youtube.com/embed/${vid[1] || vid[2]}" width="100%" height="200" frameborder="0" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
-if (list) return `<iframe src="https://www.youtube.com/embed/videoseries?list=${list}" width="100%" height="200" frameborder="0" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
-return '';
+if (!vid && !list) return '';
+const params = `enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}${list ? '&list=' + list : ''}`;
+const src = `https://www.youtube.com/embed/${vid || 'videoseries'}?${params}`;
+const step = (f, t, label) => `<button type="button" class="mp-step" data-act="yt" data-f="${f}" aria-label="${label}">${t}</button>`;
+return `<div class="mplayer mp-yt">${mDrag()}
+<div class="yt-hide" aria-hidden="true"><iframe id="yt-frame" src="${src}" width="200" height="200" frameborder="0" allow="autoplay; encrypted-media" tabindex="-1"></iframe></div>
+<div class="mp-row"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="mp-t" id="yt-title">YouTube</span>${list ? step('previousVideo', '‹', 'Önceki') : ''}<button type="button" class="mp-play" id="yt-toggle" data-act="yt" data-f="toggle" aria-label="Oynat"></button>${list ? step('nextVideo', '›', 'Sonraki') : ''}</div>
+</div>`;
 }
+let YT_PLAYING = false, YT_READY = false, YT_TITLE = 'YouTube';
+const ytSend = msg => { const f = document.getElementById('yt-frame'); if (f && f.contentWindow) f.contentWindow.postMessage(JSON.stringify(msg), '*'); };
+const ytFail = () => { const t = document.getElementById('yt-title'); if (t) t.textContent = 'Bu video burada çalınamıyor'; };
+// Bazı videolar hata bildirmeden açılmaz; basıldıktan 8 sn sonra hâlâ çalmıyorsa uyarı gösterilir
+const ytCommand = f => { if (!YT_READY) return ytFail(); const play = f === 'toggle' && !YT_PLAYING; ytSend({ event: 'command', func: f === 'toggle' ? (YT_PLAYING ? 'pauseVideo' : 'playVideo') : f, args: [] }); if (play) setTimeout(() => { if (!YT_PLAYING) ytFail(); }, 8000); };
+// Çerçeve yüklenince YouTube'dan durum ve başlık bildirimi istenir
+document.addEventListener('load', e => { if (e.target && e.target.id === 'yt-frame') { YT_PLAYING = YT_READY = false; ytSend({ event: 'listening', id: 'yt-frame' }); } }, true);
+window.addEventListener('message', e => {
+if (!/^https:\/\/www\.youtube(-nocookie)?\.com$/.test(e.origin) || typeof e.data !== 'string') return;
+let d; try { d = JSON.parse(e.data); } catch (err) { return; }
+if (d.event === 'onError') { YT_READY = false; return ytFail(); }
+if (d.event === 'initialDelivery' || d.event === 'onReady') { if (!YT_READY) ytSend({ event: 'command', func: 'addEventListener', args: ['onError'] }); YT_READY = true; }
+const info = d.info;
+if (!info || typeof info !== 'object') return;
+if (typeof info.playerState === 'number') {
+YT_PLAYING = info.playerState === 1;
+if (YT_PLAYING) { const tp = document.getElementById('yt-title'); if (tp) tp.textContent = YT_TITLE; }
+const box = document.querySelector('.mp-yt'); if (box) box.classList.toggle('playing', YT_PLAYING);
+const b = document.getElementById('yt-toggle'); if (b) b.setAttribute('aria-label', YT_PLAYING ? 'Duraklat' : 'Oynat');
+}
+const title = info.videoData && info.videoData.title;
+if (title) YT_TITLE = title;
+const tEl = document.getElementById('yt-title'); if (title && tEl) tEl.textContent = title;
+});
+// Odada çalar sürüklenerek taşınır; yeri kişinin tarayıcısında hatırlanır ve hep ekranın içinde kalır
+function moveMusic(x, y, save) {
+const card = document.getElementById('music-card'); if (!card) return;
+const nx = Math.round(Math.max(8, Math.min(innerWidth - card.offsetWidth - 8, x))), ny = Math.round(Math.max(8, Math.min(innerHeight - card.offsetHeight - 8, y)));
+card.style.setProperty('--px', nx + 'px'); card.style.setProperty('--py', ny + 'px');
+if (save) { try { localStorage.setItem('kulup-mpos', JSON.stringify({ x: nx, y: ny })); } catch (e) {} }
+}
+function placeMusic() {
+let pos = null;
+try { pos = JSON.parse(localStorage.getItem('kulup-mpos') || 'null'); } catch (e) {}
+if (pos) moveMusic(pos.x, pos.y, false);
+}
+window.addEventListener('resize', () => { if (document.body.classList.contains('focus-mode')) placeMusic(); });
+document.addEventListener('pointerdown', e => {
+const h = e.target.closest ? e.target.closest('#music-drag') : null;
+if (!h || !document.body.classList.contains('focus-mode')) return;
+e.preventDefault();
+const card = document.getElementById('music-card'), r = card.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top;
+card.classList.add('dragging');
+const move = ev => moveMusic(ev.clientX - ox, ev.clientY - oy, false);
+const up = ev => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up); card.classList.remove('dragging'); moveMusic(ev.clientX - ox, ev.clientY - oy, true); };
+document.addEventListener('pointermove', move); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+});
+document.addEventListener('keydown', e => {
+if (!e.target || e.target.id !== 'music-drag') return;
+const d = { ArrowLeft: [-24, 0], ArrowRight: [24, 0], ArrowUp: [0, -24], ArrowDown: [0, 24] }[e.key];
+if (!d) return;
+e.preventDefault();
+const r = document.getElementById('music-card').getBoundingClientRect();
+moveMusic(r.left + d[0], r.top + d[1], true);
+});
 // Zamanlayıcı: serbest okuma, odak/mola döngüleri ve geri sayım
 // T2.mode: 'free' (kronometre), 'cycle' (odak + mola turları), 'count' (geri sayım)
 const P_FOCUS = 25 * 60, P_BREAK = 5 * 60;
@@ -1964,6 +2027,7 @@ function slideTab(tab) {
 // Sayfa yeniden çizilmez, sadece sınıf değişir; böylece çalan müzik kesilmez.
 function setFocusMode(on) {
   document.body.classList.toggle('focus-mode', on);
+  if (on) placeMusic();
   try {
     if (on && document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
     if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
