@@ -1097,7 +1097,8 @@ document.addEventListener('click', e => {
     case 'nav': go(el.dataset.view); break;
     case 'open': go('kitap', { bookId: id, tab: el.dataset.tab || 'genel' }); break;
     case 'back': go('kitaplik'); break;
-    case 'tab': S.tab = el.dataset.tab; render(); break;
+    case 'tab': slideTab(el.dataset.tab); break;
+    case 'room': setRoomOption(el.dataset.kind, el.dataset.v); break;
     case 'toggle-add': S.showAdd = !S.showAdd; if (S.view !== 'kitaplik') go('kitaplik'); else render(); break;
     case 'filter': S.ownFilter = el.dataset.f; render(); break;
     case 'shelf': S.shelfFilter = el.dataset.f; render(); break;
@@ -1409,12 +1410,12 @@ return '';
 // T2.mode: 'free' (kronometre), 'cycle' (odak + mola turları), 'count' (geri sayım)
 const P_FOCUS = 25 * 60, P_BREAK = 5 * 60;
 const MODES2 = [
-['serbest', 'Serbest', 'kronometre'],
-['p25', 'Pomodoro', '25 / 5 dk'],
-['p50', 'Derin odak', '50 / 10 dk'],
-['p15', 'Kısa tur', '15 / 3 dk'],
-['ozel', 'Özel döngü', 'kendin ayarla'],
-['sayac', 'Geri sayım', 'süre seç'],
+['serbest', '∞', 'Serbest okuma'],
+['p15', '15', 'Kısa tur · 15 / 3 dk'],
+['p25', '25', 'Pomodoro · 25 / 5 dk'],
+['p50', '50', 'Derin odak · 50 / 10 dk'],
+['ozel', '+', 'Özel döngü'],
+['sayac', '↓', 'Geri sayım'],
 ];
 const CYCLES2 = { p25: [25, 5], p50: [50, 10], p15: [15, 3] };
 let T2 = null;
@@ -1480,13 +1481,12 @@ o.stop(ac.currentTime + i * 0.25 + 0.65);
 });
 } catch (e) {}
 }
-const RING_R = 54, RING_C = 2 * Math.PI * RING_R;
 setInterval(() => {
 if (!T2) return;
 if (T2.mode === 'count' && elapsedT2() >= T2.target) { chime(); stopTimer2('Süre doldu, oturum kaydedildi'); return; }
 if (tickT2()) { chime(); refreshTimer2(); return; }
 const el = document.getElementById('timer-out'); if (el) el.textContent = labelT2();
-const ring = document.getElementById('timer-ring'); if (ring) ring.setAttribute('stroke-dashoffset', (RING_C * (1 - ringPct2())).toFixed(1));
+const line = document.getElementById('timer-line'); if (line) line.style.setProperty('--pct', ringPct2().toFixed(4));
 }, 1000);
 // Zamanlayıcı sayfasında yalnızca zamanlayıcı kartı yenilenir; yan taraftaki müzik kesilmesin diye
 function refreshTimer2() {
@@ -1509,10 +1509,13 @@ if (m === 'ozel') { T2.mode = 'cycle'; T2.focus = f * 60; T2.brk = b * 60; }
 if (m === 'sayac') { T2.mode = 'count'; T2.target = c * 60; }
 saveT2();
 refreshTimer2();
+setFocusMode(true);
 }
 function resetTimer2() {
 T2 = null;
 saveT2();
+setFocusMode(false);
+setRoomSound('off');
 toast('Zamanlayıcı sıfırlandı');
 refreshTimer2();
 }
@@ -1522,7 +1525,10 @@ const t = T2;
 const secs = focusSecs2();
 T2 = null;
 saveT2();
+setFocusMode(false);
+setRoomSound('off');
 refreshTimer2();
+if (secs >= 60) doneMoment(secs, (bookById(t.bookId) || {}).title);
 if (secs >= 5 && fs) {
 await db.add('sessions', { by: slug(S.me), bookId: t.bookId, seconds: secs, at: nowISO() }).catch(fail);
 toast(typeof msg === 'string' ? msg : 'Oturum kaydedildi');
@@ -1624,25 +1630,77 @@ ${musicEmbed(url) || '<p class="muted small">Spotify ya da YouTube bağlantını
 <label style="margin-top:14px">Bağlantı<input id="music-url" value="${esc(url || '')}" placeholder="open.spotify.com/... ya da youtube.com/..."></label>
 <div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-act="msave">Kaydet</button>${url ? `<a class="btn ghost sm" href="${esc(url)}" target="_blank" rel="noopener">Uygulamada aç</a>` : ''}</div>`;
 }
+// Okuma odası: ışık tercihi hatırlanır; ortam sesi dosya indirmez, tarayıcıda gürültüden üretilir
+let ROOM = { light: 'alaca', sound: 'off' };
+try { ROOM.light = JSON.parse(localStorage.getItem('kulup-room') || '{}').light || 'alaca'; } catch (e) {}
+let roomAC = null, roomSrc = null;
+function setRoomSound(k) {
+ROOM.sound = k;
+if (roomSrc) { try { roomSrc.stop(); } catch (e) {} roomSrc = null; }
+if (k === 'off') return;
+try {
+roomAC = roomAC || new (window.AudioContext || window.webkitAudioContext)();
+roomAC.resume();
+const buf = roomAC.createBuffer(1, roomAC.sampleRate * 4, roomAC.sampleRate), d = buf.getChannelData(0);
+let last = 0;
+for (let i = 0; i < d.length; i++) { last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.04; d[i] = last * 3.2; }
+const s = roomAC.createBufferSource(), f = roomAC.createBiquadFilter(), g = roomAC.createGain();
+s.buffer = buf; s.loop = true;
+f.type = k === 'rain' ? 'highpass' : 'lowpass';
+f.frequency.value = k === 'rain' ? 400 : 700;
+g.gain.value = k === 'rain' ? 0.5 : 0.9;
+s.connect(f).connect(g).connect(roomAC.destination);
+s.start();
+roomSrc = s;
+} catch (e) {}
+}
+// Işık ve ses düğmeleri kartı yeniden çizmez; yalnızca oda ve seçili düğme değişir
+function setRoomOption(kind, v) {
+if (kind === 'light') {
+ROOM.light = v;
+try { localStorage.setItem('kulup-room', JSON.stringify({ light: v })); } catch (e) {}
+const r = document.querySelector('.room'); if (r) r.dataset.light = v;
+} else setRoomSound(v);
+document.querySelectorAll(`[data-act="room"][data-kind="${kind}"]`).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+}
+const todayMin2 = () => { const k = dayKey2(new Date()); return Math.round(mySessions2().filter(s => sessDay2(s) === k).reduce((a, s) => a + (s.seconds || 0), 0) / 60); };
+// Oturum bitince ekranı kısa süre kaplayan büyük an; tıklayınca ya da kendiliğinden kapanır
+function doneMoment(secs, title) {
+const m = Math.round(secs / 60);
+const el = document.createElement('div');
+el.className = 'done-moment';
+el.innerHTML = `<p class="label">Oturum bitti</p><p class="dm-n">${m}<small> dakika</small></p><p class="dm-t">${title ? esc(title) + ' · ' : ''}bugün toplam ${todayMin2() + m} dk</p>`;
+const close = () => { el.classList.add('off'); setTimeout(() => el.remove(), 500); };
+el.addEventListener('click', close);
+setTimeout(close, 4500);
+document.body.appendChild(el);
+}
 function timerBody2() {
 const running = T2 ? bookById(T2.bookId) : null;
 if (T2 && running) {
 const phase = T2.mode === 'cycle' && T2.phase === 'break' ? ' is-break' : '';
-return `<h3>Oturum</h3>
-<div class="ring${phase}"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${RING_R}" fill="none" stroke="var(--line)" stroke-width="6"/><circle id="timer-ring" cx="60" cy="60" r="${RING_R}" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${(RING_C * (1 - ringPct2())).toFixed(1)}" transform="rotate(-90 60 60)"/></svg><div class="ring-t"><b id="timer-out">${labelT2()}</b><span>${esc(subT2())}</span></div></div>
-<p class="small muted" style="text-align:center">${esc(running.title)}</p>
-<div class="actions" style="justify-content:center;margin-top:14px"><button type="button" class="btn" data-act="tstop">Bitir ve kaydet</button><button type="button" class="btn ghost" data-act="treset">Sıfırla</button></div>`;
+const chip = (kind, v, t) => `<button type="button" data-act="room" data-kind="${kind}" data-v="${v}" aria-pressed="${ROOM[kind] === v}">${t}</button>`;
+return `<div class="room${phase}" data-light="${esc(ROOM.light)}">
+<span class="lamp" aria-hidden="true"></span>
+<div class="rtop"><span>${esc(subT2())}</span><span>Bugün ${todayMin2()} dk</span></div>
+<div class="rmid"><div class="digits" id="timer-out">${labelT2()}</div><p class="rtitle">${esc(running.title)}</p><p class="rauthor">${esc(running.author || '')}</p></div>
+<div class="rfoot"><div class="rline"><i id="timer-line" style="--pct:${ringPct2().toFixed(4)}"></i></div>
+<div class="rbot">
+<div class="chips room-only"><span>Işık</span>${chip('light', 'gun', 'Gündüz')}${chip('light', 'alaca', 'Alacakaranlık')}${chip('light', 'gece', 'Gece')}</div>
+<div class="chips room-only"><span>Ses</span>${chip('sound', 'off', 'Sessiz')}${chip('sound', 'rain', 'Yağmur')}${chip('sound', 'fire', 'Şömine')}</div>
+<div class="ractions"><button type="button" class="btn ghost sm room-only" data-act="focusmode">Küçült</button><button type="button" class="btn sm room-off" data-act="focusmode">Odaya dön</button><button type="button" class="btn sm" data-act="tstop">Bitir ve kaydet</button><button type="button" class="btn ghost sm" data-act="treset">Sıfırla</button></div>
+</div></div>
+</div>`;
 }
 const opts = S.books.filter(b => b.status !== 'birakildi').map(b => `<option value="${esc(b.id)}">${esc(b.title)}</option>`).join('');
 const modes = MODES2.map(([v, t, d]) => `<label class="mode"><input type="radio" name="tmode" value="${v}"${TPREF.m === v ? ' checked' : ''}><b>${t}</b><span>${d}</span></label>`).join('');
-return `<h3>Oturum</h3>
-${illus('tea', 'timer-art')}
+return `<h2 class="room-q">Bugün ne kadar <em>okuyoruz?</em></h2>
 <div class="tset">
 <label>Kitap<select id="timer-book">${opts}</select></label>
 <div class="modes" role="radiogroup" aria-label="Zamanlayıcı türü">${modes}</div>
 <div class="row2 f-ozel"><label>Odak (dk)<input id="t-focus" type="number" min="1" max="180" value="${TPREF.f}"></label><label>Mola (dk)<input id="t-break" type="number" min="1" max="60" value="${TPREF.b}"></label></div>
 <label class="f-sayac">Süre (dk)<input id="t-count" type="number" min="1" max="300" value="${TPREF.c}"></label>
-<div class="actions"><button type="button" class="btn" data-act="tstart">Başlat</button></div>
+<div class="actions"><button type="button" class="btn" data-act="tstart">Odaya gir</button></div>
 </div>`;
 }
 function viewTimer2() {
@@ -1651,8 +1709,7 @@ ensureProfiles();
 if (!S.me) return `<div class="page-head"><h1>Okuma köşesi</h1></div><div class="card empty"><p class="muted">Önce kim olduğunu seç.</p></div>`;
 const prof = (S.profiles || {})[slug(S.me)] || {};
 return `
-<div class="page-head"><div><p class="label">Zamanlayıcı ve müzik</p><h1>Okuma köşesi</h1></div><button type="button" class="btn ghost" data-act="focusmode">Odak modu</button></div>
-<button type="button" class="focus-exit btn ghost sm" data-act="focusmode">Odak modundan çık</button>
+<div class="page-head"><div><p class="label">Zamanlayıcı ve müzik</p><h1>Okuma köşesi</h1></div></div>
 <div class="cols even timer-page">
 <section class="card" id="timer-card">${timerBody2()}</section>
 <section class="card" id="music-card">${musicCard2(prof.music)}</section>
@@ -1762,7 +1819,7 @@ const ILLUS = {
 <path d="M178 131 L178 54 M168 132 C173 128 183 128 188 132"/>
 <path d="M162 54 L194 54 L185 32 L171 32Z" fill="#f6e0ae"/>
 <path d="M164 64 L156 74 M178 66 L178 78 M192 64 L200 74" stroke-dasharray="2 4"/>
-<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#2b4bff"/>
+<path d="M14 132 L44 132 L44 123 L14 123Z" fill="#e8341c"/>
 <path d="M18 123 L42 123 L42 115 L18 115Z" fill="#7fa38a"/>
 <path d="M15 115 L39 115 L39 107 L15 107Z" fill="#f8cdb7"/>
 <path d="M32 107 C30 100 36 96 40 99"/>
@@ -1776,12 +1833,12 @@ const ILLUS = {
 <path d="M196 90 C206 90 206 104 194 106"/>
 <path d="M142 122 C158 127 188 127 204 122"/>
 <path d="M164 72 C158 64 170 58 164 48 M178 72 C172 64 184 58 178 48"/>
-<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#2b4bff"/>
+<path d="M60 40 C62 34 68 34 70 40 C72 34 78 34 80 40 C80 48 70 54 70 54 C70 54 60 48 60 40Z" fill="#e8341c"/>
 </svg>`,
   // Raf, kitaplar ve saksı
   shelf: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M20 120 C80 118 140 121 200 119 M24 120 L24 132 M196 119 L196 131"/>
-<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#2b4bff"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#f8cdb7"/>
+<path d="M36 119 L36 66 L50 66 L50 119Z" fill="#e8341c"/><path d="M52 119 L52 76 L64 76 L64 119Z" fill="#f8cdb7"/>
 <path d="M66 119 L66 60 L80 60 L80 119Z" fill="#7fa38a"/><path d="M84 119 L96 72 L108 75 L97 120Z" fill="#f6e0ae"/>
 <path d="M40 76 L46 76 M70 70 L76 70 M70 108 L76 108"/>
 <path d="M140 119 L136 96 L164 96 L160 119Z" fill="#f1a47f"/>
@@ -1860,7 +1917,7 @@ async function shareRecap() {
   await new Promise(r => { img.onload = r; img.onerror = r; });
   try { g.drawImage(img, 290, 120, 500, 341); } catch (e) {}
   g.textAlign = 'center';
-  g.fillStyle = '#2b4bff'; g.font = '600 34px "Instrument Sans", Geist, sans-serif';
+  g.fillStyle = '#e8341c'; g.font = '600 34px "Instrument Sans", Geist, sans-serif';
   g.fillText('KİTAP KULÜBÜ · ' + d.label.toLocaleUpperCase('tr-TR'), 540, 530);
   g.fillStyle = '#1b1b1f'; g.font = '500 136px "Bodoni Moda", Georgia, serif';
   g.fillText(hoursText(d.total), 540, 680);
@@ -1872,7 +1929,7 @@ async function shareRecap() {
     g.fillStyle = '#6b6b73'; g.font = '500 30px "Instrument Sans", Geist, sans-serif'; g.fillText(k, x, y);
     g.fillStyle = '#1b1b1f'; g.font = '500 64px "Bodoni Moda", Georgia, serif'; g.fillText(String(v), x, y + 64);
   });
-  if (d.topBook) { g.fillStyle = '#2b4bff'; g.font = 'italic 500 40px "Bodoni Moda", Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
+  if (d.topBook) { g.fillStyle = '#e8341c'; g.font = 'italic 500 40px "Bodoni Moda", Georgia, serif'; g.fillText('En çok: ' + d.topBook.slice(0, 40), 540, 1200); }
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   if (!blob) return toast('Resim hazırlanamadı.');
   const file = new File([blob], `kitap-kulubu-${d.key}.png`, { type: 'image/png' });
@@ -1887,7 +1944,23 @@ async function shareRecap() {
   toast('Özet resmi indirildi');
 }
 
-// Odak modu (Margins esintisi): menüler gizlenir, yalnızca zamanlayıcı ve müzik kalır.
+// Kitap sekmeleri: seçili sekmenin çizgisi eski yerinden yenisine kayar
+function slideTab(tab) {
+  const old = document.querySelector('.subtabs .on');
+  const a = old ? old.offsetLeft : 0, w = old ? old.offsetWidth : 0;
+  S.tab = tab;
+  render();
+  const nav = document.querySelector('.subtabs'), on = nav && nav.querySelector('.on');
+  if (!old || !on || reduceMotion()) return;
+  const line = document.createElement('span');
+  line.className = 'tabline';
+  line.style.left = a + 'px'; line.style.width = w + 'px';
+  nav.appendChild(line);
+  nav.classList.add('sliding');
+  requestAnimationFrame(() => requestAnimationFrame(() => { line.style.left = on.offsetLeft + 'px'; line.style.width = on.offsetWidth + 'px'; }));
+  setTimeout(() => { nav.classList.remove('sliding'); line.remove(); }, 430);
+}
+// Odak modu = okuma odası: menüler gizlenir, zamanlayıcı ekranı kaplar, müzik köşede küçülür.
 // Sayfa yeniden çizilmez, sadece sınıf değişir; böylece çalan müzik kesilmez.
 function setFocusMode(on) {
   document.body.classList.toggle('focus-mode', on);
@@ -1960,14 +2033,19 @@ function enhance(root) {
     if (!isFinite(to)) return;
     const dec = Number(el.dataset.dec || 0);
     const fmt = v => v.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-    const t0 = performance.now();
+    const begin = () => { const t0 = performance.now();
     const step = now => {
       const k = Math.min(1, (now - t0) / 1100);
       el.textContent = fmt(to * (1 - Math.pow(1 - k, 3)));
       if (k < 1) requestAnimationFrame(step);
     };
     el.textContent = fmt(0);
-    requestAnimationFrame(step);
+    requestAnimationFrame(step); };
+    el.textContent = fmt(0);
+    // Rakam ekrana girince saymaya başlar
+    if (!('IntersectionObserver' in window)) return begin();
+    const io = new IntersectionObserver(es => { if (es[0].isIntersecting) { io.disconnect(); begin(); } });
+    io.observe(el);
   });
 }
 if (window.matchMedia && matchMedia('(hover: hover)').matches) {
