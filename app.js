@@ -1414,22 +1414,28 @@ return `<div class="mplayer mp-yt">${mDrag()}
 <div class="mp-row"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="mp-t" id="yt-title">YouTube</span>${list ? step('previousVideo', '‹', 'Önceki') : ''}<button type="button" class="mp-play" id="yt-toggle" data-act="yt" data-f="toggle" aria-label="Oynat"></button>${list ? step('nextVideo', '›', 'Sonraki') : ''}</div>
 </div>`;
 }
-let YT_PLAYING = false;
+let YT_PLAYING = false, YT_READY = false, YT_TITLE = 'YouTube';
 const ytSend = msg => { const f = document.getElementById('yt-frame'); if (f && f.contentWindow) f.contentWindow.postMessage(JSON.stringify(msg), '*'); };
-const ytCommand = f => ytSend({ event: 'command', func: f === 'toggle' ? (YT_PLAYING ? 'pauseVideo' : 'playVideo') : f, args: [] });
+const ytFail = () => { const t = document.getElementById('yt-title'); if (t) t.textContent = 'Bu video burada çalınamıyor'; };
+// Bazı videolar hata bildirmeden açılmaz; basıldıktan 8 sn sonra hâlâ çalmıyorsa uyarı gösterilir
+const ytCommand = f => { if (!YT_READY) return ytFail(); const play = f === 'toggle' && !YT_PLAYING; ytSend({ event: 'command', func: f === 'toggle' ? (YT_PLAYING ? 'pauseVideo' : 'playVideo') : f, args: [] }); if (play) setTimeout(() => { if (!YT_PLAYING) ytFail(); }, 8000); };
 // Çerçeve yüklenince YouTube'dan durum ve başlık bildirimi istenir
-document.addEventListener('load', e => { if (e.target && e.target.id === 'yt-frame') { YT_PLAYING = false; ytSend({ event: 'listening', id: 'yt-frame' }); } }, true);
+document.addEventListener('load', e => { if (e.target && e.target.id === 'yt-frame') { YT_PLAYING = YT_READY = false; ytSend({ event: 'listening', id: 'yt-frame' }); } }, true);
 window.addEventListener('message', e => {
 if (!/^https:\/\/www\.youtube(-nocookie)?\.com$/.test(e.origin) || typeof e.data !== 'string') return;
 let d; try { d = JSON.parse(e.data); } catch (err) { return; }
+if (d.event === 'onError') { YT_READY = false; return ytFail(); }
+if (d.event === 'initialDelivery' || d.event === 'onReady') { if (!YT_READY) ytSend({ event: 'command', func: 'addEventListener', args: ['onError'] }); YT_READY = true; }
 const info = d.info;
 if (!info || typeof info !== 'object') return;
 if (typeof info.playerState === 'number') {
 YT_PLAYING = info.playerState === 1;
+if (YT_PLAYING) { const tp = document.getElementById('yt-title'); if (tp) tp.textContent = YT_TITLE; }
 const box = document.querySelector('.mp-yt'); if (box) box.classList.toggle('playing', YT_PLAYING);
 const b = document.getElementById('yt-toggle'); if (b) b.setAttribute('aria-label', YT_PLAYING ? 'Duraklat' : 'Oynat');
 }
 const title = info.videoData && info.videoData.title;
+if (title) YT_TITLE = title;
 const tEl = document.getElementById('yt-title'); if (title && tEl) tEl.textContent = title;
 });
 // Odada çalar sürüklenerek taşınır; yeri kişinin tarayıcısında hatırlanır ve hep ekranın içinde kalır
